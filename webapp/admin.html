@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zaman Admin</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=4">
+  <style>
+    /* ── Stats ─────────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 16px;
+    }
+    .stat-card {
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-md);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card.wide { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; }
+    .stat-card.accent {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .stat-card.revenue {
+      background: linear-gradient(135deg, #0d1f0d 0%, #122012 100%);
+      border-color: rgba(74,222,128,0.2);
+    }
+    .stat-card-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+    .stat-card-body { flex: 1; min-width: 0; }
+    .stat-value {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--white);
+      line-height: 1;
+    }
+    .stat-value.green { color: #4ade80; }
+    .stat-value.amber { color: #f0a500; }
+    .stat-label {
+      font-size: 11px;
+      color: var(--gray-5);
+      margin-top: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .stat-icon-bg {
+      font-size: 14px;
+      margin-bottom: 8px;
+      opacity: 0.6;
+    }
+
+    /* ── Nav Grid ───────────────────────────────────────────── */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 0 16px;
+    }
+    .nav-card {
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-md);
+      padding: 16px 12px 14px;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-card:active { background: var(--gray-2); transform: scale(0.97); }
+    .nav-card-icon {
+      font-size: 22px;
+      line-height: 1;
+      width: 36px; height: 36px;
+      background: var(--gray-2);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-card-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: -0.2px;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+    .nav-card-sub {
+      font-size: 11px;
+      color: var(--gray-5);
+      margin-top: -2px;
+    }
+    .badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      min-width: 18px; height: 18px;
+      background: #f0a500;
+      color: #000;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 0 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Appointment rows ───────────────────────────────────── */
+    .appt-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gray-3);
+    }
+    .appt-row:last-child { border-bottom: none; }
+    .appt-time-block {
+      text-align: center;
+      min-width: 48px;
+      background: var(--gray-2);
+      border-radius: 10px;
+      padding: 8px 4px;
+      flex-shrink: 0;
+    }
+    .appt-time-big { font-size: 15px; font-weight: 800; letter-spacing: -0.5px; color: var(--white); }
+    .appt-time-status { font-size: 8px; margin-top: 3px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .appt-row-info { flex: 1; min-width: 0; }
+    .appt-row-name { font-size: 15px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .appt-row-svc { font-size: 12px; color: var(--gray-5); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .appt-row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+    .appt-row-price { font-size: 14px; font-weight: 700; color: var(--white); }
+    .appt-status-badge {
+      font-size: 10px; font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .appt-status-badge.pending  { background: rgba(240,165,0,0.15); color: #f0a500; }
+    .appt-status-badge.confirmed { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .appt-status-badge.cancelled { background: rgba(150,150,150,0.15); color: var(--gray-5); }
+    .appt-row-actions { display: flex; gap: 8px; padding: 0 16px 12px; }
+    .divider { height: 1px; background: var(--gray-3); margin: 0; }
+    .price-type-btn { flex:1;padding:8px 4px;font-size:13px;font-weight:600;border-radius:8px;border:1px solid var(--gray-3);background:var(--gray-1);color:var(--gray-6);cursor:pointer;transition:all 0.15s }
+    .price-type-btn.active { background:var(--accent);border-color:var(--accent);color:#000 }
+
+    #time-now-line { display:flex;align-items:center;gap:8px;padding:0 16px;margin:2px 0;pointer-events:none }
+    #time-now-line .dot { width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 8px #4ade8099 }
+    #time-now-line .line { flex:1;height:1px;background:linear-gradient(to right,#4ade80,transparent) }
+    #time-now-line .label { font-size:11px;font-weight:700;color:#4ade80;flex-shrink:0 }
+
+    /* ── Buttons ────────────────────────────────────────────── */
+    .btn-sm {
+      flex: 1;
+      padding: 10px 8px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--gray-3);
+      background: var(--gray-2);
+      color: var(--gray-6);
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-sm.confirm {
+      background: rgba(74,222,128,0.1);
+      border-color: rgba(74,222,128,0.25);
+      color: #4ade80;
+    }
+    .btn-sm.danger {
+      background: rgba(229,57,53,0.08);
+      border-color: rgba(229,57,53,0.2);
+      color: #e57373;
+    }
+    .btn-sm.tg {
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      background: rgba(41,182,246,0.1);
+      border-color: rgba(41,182,246,0.2);
+      color: #29b6f6;
+    }
+    .btn-sm:active { opacity: 0.7; }
+
+    .btn-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--gray-3);
+      background: transparent;
+      color: var(--gray-6);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-icon:active { background: var(--gray-2); color: var(--white); }
+
+    /* ── Cards / Sections ───────────────────────────────────── */
+    .section-card {
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-lg);
+      margin: 0 16px;
+      overflow: hidden;
+    }
+
+    /* ── Services ───────────────────────────────────────────── */
+    .svc-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 14px 4px;
+      border-bottom: 1px solid var(--gray-3);
+      transition: background 0.15s;
+    }
+    .svc-row:last-child { border-bottom: none; }
+    .svc-order-btns { display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-right:6px; }
+    .svc-order-btn { width:28px;height:24px;border:1px solid var(--gray-3);border-radius:6px;background:var(--gray-2);color:var(--gray-6);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1 }
+    .svc-order-btn:active { background:var(--gray-3);color:var(--white) }
+    .svc-row-name  { font-size: 15px; font-weight: 600; }
+    .svc-row-meta  { font-size: 12px; color: var(--gray-5); margin-top: 3px; }
+    .svc-row-price { font-size: 15px; font-weight: 700; flex-shrink: 0; margin-right: 12px; }
+
+    /* ── Forms ──────────────────────────────────────────────── */
+    .form-group { padding: 0 16px; margin-bottom: 12px; }
+    .form-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-5);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-sm);
+      padding: 13px 16px;
+      font-size: 15px;
+      color: var(--white);
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .form-input:focus { border-color: var(--gray-5); }
+    .form-input::placeholder { color: var(--gray-4); }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 16px;
+      margin-bottom: 12px;
+    }
+    .form-row .form-group { padding: 0; margin-bottom: 0; }
+
+    /* ── Toggle ─────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gray-3);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 15px; font-weight: 500; color: var(--white); }
+    .toggle-sub   { font-size: 12px; color: var(--gray-5); margin-top: 2px; }
+    .prepay-mode-option {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px; border-radius: 10px; cursor: pointer;
+      border: 1.5px solid var(--gray-2); background: var(--gray-1);
+      transition: border-color .15s, background .15s;
+    }
+    .prepay-mode-option:has(input:checked) {
+      border-color: var(--green); background: rgba(48,209,88,.08);
+    }
+    .prepay-mode-option input[type=radio] { margin-top: 3px; accent-color: var(--green); flex-shrink:0; }
+    .prepay-mode-title { font-size: 14px; font-weight: 500; color: var(--white); }
+    .prepay-mode-desc  { font-size: 12px; color: var(--gray-5); margin-top: 2px; line-height:1.4; }
+    /* Block calendar cells */
+    .block-cal-cell {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 34px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      position: relative; cursor: pointer; transition: background .12s;
+      color: var(--gray-4);
+    }
+    .block-cal-cell.bcc-working { color: var(--white); }
+    .block-cal-cell.bcc-past { color: var(--gray-3); cursor: default; pointer-events: none; }
+    .block-cal-cell.bcc-today { color: #f0a500; }
+    .block-cal-cell.bcc-selected { background: rgba(10,132,255,.18); color: #4db8ff; }
+    .block-cal-cell.bcc-blocked-full { color: var(--gray-5); background: rgba(255,69,58,.1); }
+    .block-cal-cell.bcc-has-block::after {
+      content: ''; position: absolute; bottom: 3px;
+      width: 5px; height: 5px; border-radius: 50%; background: #ff6b35;
+    }
+    .block-cal-cell.bcc-blocked-full::after {
+      content: ''; position: absolute; bottom: 3px;
+      width: 5px; height: 5px; border-radius: 50%; background: #ff453a;
+    }
+    /* Block type toggle */
+    .block-type-btn {
+      flex: 1; padding: 9px 6px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      border: 1.5px solid var(--gray-2); background: var(--gray-1); color: var(--gray-5);
+      cursor: pointer; transition: all .15s;
+    }
+    .block-type-btn.active { border-color: var(--green); background: rgba(48,209,88,.1); color: var(--white); }
+    /* Timeline */
+    .block-timeline-bar {
+      position: relative; height: 38px; border-radius: 8px;
+      background: rgba(48,209,88,.1); border: 1px solid rgba(48,209,88,.2);
+      overflow: hidden; cursor: default; user-select: none;
+    }
+    .block-timeline-ticks {
+      position: relative; height: 16px; margin-top: 3px;
+      font-size: 10px; color: var(--gray-5);
+    }
+    .block-range-hint {
+      font-size: 12px; color: #4db8ff; text-align: center;
+      padding: 4px 0; background: rgba(10,132,255,.08); border-radius: 6px;
+      margin-top: 4px;
+    }
+    /* Blocks list */
+    .block-period-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 0; border-top: 1px solid var(--gray-2);
+    }
+    .block-period-item:first-child { border-top: none; padding-top: 8px; }
+    .block-period-left {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
+      background: var(--gray-2); display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .block-period-daynum { font-size: 14px; font-weight: 700; color: var(--white); line-height: 1; }
+    .block-period-month  { font-size: 9px; color: var(--gray-5); text-transform: uppercase; letter-spacing: .04em; margin-top: 1px; }
+    .block-period-del {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,69,58,.12); color: #ff453a; border: none;
+      cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+    }
+    .toggle {
+      width: 46px; height: 26px;
+      border-radius: 13px;
+      background: var(--gray-3);
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--white); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--gray-5);
+      transition: all 0.2s;
+    }
+    .toggle.on::after { left: calc(100% - 23px); background: var(--black); }
+
+    /* ── Date nav ───────────────────────────────────────────── */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gray-3);
+    }
+    .date-nav-label { font-size: 16px; font-weight: 700; }
+    .date-nav-btn {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--gray-3);
+      background: transparent;
+      color: var(--gray-7);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .date-nav-btn:active { background: var(--gray-2); color: var(--white); }
+
+    /* ── Payments ───────────────────────────────────────────── */
+    .pay-card {
+      background: var(--gray-1);
+      border: 1px solid rgba(240,165,0,0.25);
+      border-radius: var(--r-lg);
+      margin: 0 16px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .pay-card-header { padding: 14px 20px; border-bottom: 1px solid var(--gray-3); display: flex; align-items: center; justify-content: space-between; }
+    .pay-card-name { font-size: 16px; font-weight: 700; }
+    .pay-card-amount { font-size: 16px; font-weight: 700; color: #fbbf24; }
+    .pay-card-meta { font-size: 13px; color: var(--gray-6); padding: 10px 20px; }
+    .pay-card-actions { display: flex; gap: 8px; padding: 10px 20px 14px; }
+
+    /* ── Clients ────────────────────────────────────────────── */
+    .client-filter-btn { flex:1;padding:9px 4px;font-size:13px;font-weight:600;border-radius:10px;border:1px solid var(--gray-3);background:var(--gray-1);color:var(--gray-5);cursor:pointer;transition:all 0.15s }
+    .client-filter-btn.active { background:var(--gray-2);border-color:var(--gray-4);color:var(--white) }
+    .client-card {
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-lg);
+      margin: 0 16px 12px;
+      overflow: hidden;
+    }
+    .client-card.banned { border-color: rgba(229,57,53,0.4); }
+    .client-header { display: flex; align-items: center; gap: 14px; padding: 14px 20px; }
+    .client-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--gray-3); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .client-avatar.banned-av { background: rgba(229,57,53,0.15); }
+    .client-avatar-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: block; }
+    .client-avatar-img.banned-av { opacity: 0.5; outline: 2px solid rgba(229,57,53,0.5); }
+    .client-name { font-size: 15px; font-weight: 700; color: var(--white); }
+    .client-meta { font-size: 12px; color: var(--gray-5); margin-top: 2px; }
+    .client-ban-reason { font-size: 12px; color: #e57373; margin-top: 4px; }
+    .client-stats { display: flex; border-top: 1px solid var(--gray-3); }
+    .client-stat { flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--gray-3); }
+    .client-stat:last-child { border-right: none; }
+    .client-stat-val { font-size: 15px; font-weight: 700; color: var(--white); }
+    .client-stat-lbl { font-size: 10px; color: var(--gray-5); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+    .client-actions { display: flex; gap: 8px; padding: 10px 16px 12px; }
+
+    /* ── Schedule ───────────────────────────────────────────── */
+    .schedule-row { border-bottom: 1px solid var(--gray-3); }
+    .schedule-row:last-child { border-bottom: none; }
+    .schedule-row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+    }
+    .schedule-day-name { font-size: 15px; font-weight: 600; color: var(--white); }
+    .schedule-day-hours { font-size: 12px; color: var(--gray-5); margin-top: 3px; }
+    .schedule-times {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 20px 14px;
+    }
+    .schedule-time-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-5);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    /* ── Interval selector ──────────────────────────────────── */
+    .interval-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 14px 20px;
+    }
+    .interval-btn {
+      background: var(--gray-2);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-sm);
+      color: var(--gray-6);
+      padding: 10px 4px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .interval-btn.selected {
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--white);
+    }
+    .interval-btn:active { opacity: 0.7; }
+
+    /* ── Settings sections ──────────────────────────────────── */
+    .settings-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      margin-bottom: 10px;
+    }
+    .settings-section-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--gray-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .settings-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Admin Calendar ─────────────────────────────────────── */
+    .admin-cal-wrap {
+      background: var(--gray-1);
+      border: 1px solid var(--gray-3);
+      border-radius: var(--r-lg);
+      margin: 0 16px;
+      overflow: hidden;
+    }
+    .admin-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--gray-3);
+    }
+    .admin-cal-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .admin-cal-nav {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--gray-3);
+      background: transparent;
+      color: var(--gray-7);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .admin-cal-nav:active { background: var(--gray-2); }
+    .admin-cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      padding: 8px 10px 4px;
+    }
+    .admin-cal-wd {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-5);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 0;
+    }
+    .admin-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      padding: 0 8px 12px;
+    }
+    .a-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 2px;
+      border-radius: 8px;
+      transition: background 0.12s;
+      min-height: 48px;
+      position: relative;
+    }
+    .a-cell.clickable { cursor: pointer; }
+    .a-cell.clickable:active { background: rgba(255,255,255,0.06); }
+    .a-cell.a-selected { background: rgba(74,222,128,0.12); border-radius: 8px; }
+    .a-cell-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1;
+      margin-top: 2px;
+    }
+    .a-cell-num.past  { color: var(--gray-4); }
+    .a-cell-num.today { color: #f0a500; }
+    .a-cell-count {
+      font-size: 9px;
+      color: var(--gray-5);
+      margin-top: 1px;
+      line-height: 1;
+    }
+    .a-cell-count.has { color: #4ade80; }
+
+    /* ── Appt panel (slides in below calendar) ───────────────── */
+    .admin-appt-panel {
+      margin: 12px 16px 0;
+    }
+    .admin-appt-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .admin-appt-panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-5);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Modals ─────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-sheet {
+      background: var(--gray-1);
+      border-radius: var(--r-lg) var(--r-lg) 0 0;
+      padding: 24px 20px 40px;
+      width: 100%;
+      max-width: 500px;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .modal-sub { font-size: 13px; color: var(--gray-5); margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ DASHBOARD ═══════════════════════════════ -->
+<div id="page-dash" class="page active">
+  <div style="flex-direction:row;align-items:center;justify-content:space-between;padding:28px 20px 20px;display:flex">
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--gray-5);font-weight:700;margin-bottom:6px">Панель управления</div>
+      <h1 id="dash-master-name" style="margin:0;font-size:26px;letter-spacing:-1px">✂️</h1>
+    </div>
+    <div id="dash-date" style="background:var(--gray-1);border:1px solid var(--gray-3);border-radius:12px;padding:8px 12px;font-size:12px;color:var(--gray-6);text-align:right;line-height:1.6;flex-shrink:0;white-space:nowrap"></div>
+  </div>
+
+  <div class="stat-grid" id="stats-grid" style="margin-top:4px;margin-bottom:28px">
+    <div class="loading" style="grid-column:1/-1;padding:30px"><div class="spinner"></div></div>
+  </div>
+
+  <div class="section-label" style="padding-top:12px;padding-bottom:12px">Разделы</div>
+
+  <div class="nav-grid" style="margin-bottom:32px">
+    <div class="nav-card" onclick="showAdminPage('page-today')">
+      <div class="nav-card-icon">📅</div>
+      <div class="nav-card-label">Записи</div>
+      <div class="nav-card-sub">Расписание</div>
+    </div>
+    <div class="nav-card" onclick="showAdminPage('page-payments')">
+      <div class="nav-card-icon">💳</div>
+      <div class="nav-card-label">Оплаты</div>
+      <div class="nav-card-sub">Ожидают</div>
+      <span class="badge" id="pay-badge" style="display:none">0</span>
+    </div>
+    <div class="nav-card" onclick="showAdminPage('page-clients')">
+      <div class="nav-card-icon">👥</div>
+      <div class="nav-card-label">Клиенты</div>
+      <div class="nav-card-sub">База</div>
+    </div>
+    <div class="nav-card" onclick="showAdminPage('page-services')">
+      <div class="nav-card-icon">✂️</div>
+      <div class="nav-card-label">Услуги</div>
+      <div class="nav-card-sub">Управление</div>
+    </div>
+    <div class="nav-card" onclick="showAdminPage('page-schedule')">
+      <div class="nav-card-icon">🕐</div>
+      <div class="nav-card-label">График</div>
+      <div class="nav-card-sub">Рабочие дни</div>
+    </div>
+    <div class="nav-card" onclick="showAdminPage('page-settings')">
+      <div class="nav-card-icon">⚙️</div>
+      <div class="nav-card-label">Настройки</div>
+      <div class="nav-card-sub">Профиль</div>
+    </div>
+  </div>
+
+  <div style="height:32px"></div>
+</div>
+
+<!-- ════════════════════════════ TODAY SCHEDULE ════════════════════════════ -->
+<div id="page-today" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>Записи</h1>
+  </div>
+  <div class="mt-12"></div>
+
+  <!-- Admin calendar -->
+  <div class="admin-cal-wrap">
+    <div class="admin-cal-header">
+      <button class="admin-cal-nav" onclick="adminCalPrev()">‹</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="admin-cal-title" id="admin-cal-title">—</span>
+        <button onclick="adminJumpToday()" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid var(--gray-3);background:var(--gray-2);color:var(--gray-6);cursor:pointer">Сегодня</button>
+      </div>
+      <button class="admin-cal-nav" onclick="adminCalNext()">›</button>
+    </div>
+    <div class="admin-cal-weekdays">
+      <div class="admin-cal-wd">Пн</div><div class="admin-cal-wd">Вт</div>
+      <div class="admin-cal-wd">Ср</div><div class="admin-cal-wd">Чт</div>
+      <div class="admin-cal-wd">Пт</div>
+      <div class="admin-cal-wd" style="color:#555">Сб</div>
+      <div class="admin-cal-wd" style="color:#555">Вс</div>
+    </div>
+    <div id="admin-cal-grid" class="admin-cal-grid"></div>
+    <div id="admin-cal-loading" style="display:none;padding:20px;text-align:center"><div class="spinner" style="margin:auto"></div></div>
+  </div>
+
+  <!-- Appointments panel (shown after date click) -->
+  <div id="admin-appt-panel" class="admin-appt-panel" style="display:none">
+    <div class="admin-appt-panel-header">
+      <span class="admin-appt-panel-title" id="admin-appt-panel-title">—</span>
+    </div>
+    <div class="section-card">
+      <div id="today-list"><div class="loading" style="padding:32px"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <div style="height:24px"></div>
+</div>
+
+<!-- ═══════════════════════════ PENDING PAYMENTS ═══════════════════════════ -->
+<div id="page-payments" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>Оплаты</h1>
+    <p>Ожидают подтверждения</p>
+  </div>
+  <div class="mt-12"></div>
+  <div id="payments-list"><div class="loading" style="padding:32px"><div class="spinner"></div></div></div>
+</div>
+
+<!-- ═══════════════════════════════ SERVICES ═══════════════════════════════ -->
+<div id="page-services" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>Услуги</h1>
+  </div>
+  <div class="mt-12"></div>
+  <div class="section-card" id="services-list"><div class="loading" style="padding:32px"><div class="spinner"></div></div></div>
+
+  <div class="mt-24"></div>
+  <div class="section-label">Добавить услугу</div>
+  <div class="form-group">
+    <label class="form-label">Название</label>
+    <input class="form-input" id="new-svc-name" placeholder="Мужская стрижка" type="text">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Тип цены</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button id="pt-fixed" class="price-type-btn active" onclick="setPriceType('fixed')">Фикс</button>
+      <button id="pt-from"  class="price-type-btn"        onclick="setPriceType('from')">От</button>
+      <button id="pt-range" class="price-type-btn"        onclick="setPriceType('range')">От — До</button>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" id="price-label">Цена (₸)</label>
+      <input class="form-input" id="new-svc-price" placeholder="1500" type="number" inputmode="numeric">
+    </div>
+    <div class="form-group" id="price-to-wrap" style="display:none">
+      <label class="form-label">До (₸)</label>
+      <input class="form-input" id="new-svc-price-to" placeholder="3000" type="number" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Длительность (мин)</label>
+      <input class="form-input" id="new-svc-dur" placeholder="60" type="number" inputmode="numeric">
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Описание <span style="color:var(--gray-5);font-weight:400">(необязательно)</span></label>
+    <textarea class="form-input" id="new-svc-desc" placeholder="Например: классическая мужская стрижка с укладкой" rows="2" style="resize:none"></textarea>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn-primary" onclick="addService()">Добавить услугу</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ SCHEDULE ═════════════════════════════ -->
+<div id="page-schedule" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>График работы</h1>
+    <p>Рабочие дни и часы приёма</p>
+  </div>
+
+  <div class="mt-16"></div>
+  <div class="section-label">Рабочие дни</div>
+  <div class="section-card" id="schedule-days-list">
+    <div class="loading" style="padding:32px"><div class="spinner"></div></div>
+  </div>
+
+  <div class="mt-16"></div>
+  <div class="section-label">Интервал между записями</div>
+  <div class="section-card">
+    <div class="interval-grid" id="interval-btns">
+      <button class="interval-btn" data-val="30" onclick="selectInterval(30)">30 мин</button>
+      <button class="interval-btn" data-val="45" onclick="selectInterval(45)">45 мин</button>
+      <button class="interval-btn" data-val="60" onclick="selectInterval(60)">1 час</button>
+      <button class="interval-btn" data-val="90" onclick="selectInterval(90)">1.5 ч</button>
+    </div>
+    <div style="padding:0 20px 14px;font-size:12px;color:var(--gray-5);line-height:1.5">
+      С каким шагом показываются слоты для записи в календаре
+    </div>
+  </div>
+
+  <div class="mt-20"></div>
+  <div class="section-label">Выходные и перерывы</div>
+  <div class="section-card" style="padding:0;overflow:hidden">
+
+    <!-- Mini calendar -->
+    <div style="padding:12px 12px 4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <button class="admin-cal-nav" id="block-cal-prev" onclick="blockCalPrev()">‹</button>
+        <span style="font-size:15px;font-weight:700;color:var(--white)" id="block-cal-title"></span>
+        <button class="admin-cal-nav" onclick="blockCalNext()">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px">
+        <div class="admin-cal-wd">Пн</div><div class="admin-cal-wd">Вт</div>
+        <div class="admin-cal-wd">Ср</div><div class="admin-cal-wd">Чт</div>
+        <div class="admin-cal-wd">Пт</div>
+        <div class="admin-cal-wd" style="color:rgba(255,255,255,0.3)">Сб</div>
+        <div class="admin-cal-wd" style="color:rgba(255,255,255,0.3)">Вс</div>
+      </div>
+      <div id="block-cal-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px"></div>
+    </div>
+
+    <!-- Config panel (shown when date selected) -->
+    <div id="block-date-panel" style="display:none;border-top:1px solid var(--gray-2)">
+      <div style="padding:14px 14px 16px;display:flex;flex-direction:column;gap:12px">
+
+        <!-- Date header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--white)" id="block-date-label">—</div>
+            <div style="font-size:12px;color:var(--gray-5);margin-top:2px" id="block-workday-label"></div>
+          </div>
+          <button onclick="clearBlockDate()"
+                  style="width:28px;height:28px;border-radius:50%;background:var(--gray-2);border:none;color:var(--gray-5);font-size:14px;cursor:pointer;flex-shrink:0">✕</button>
+        </div>
+
+        <!-- Block type -->
+        <div style="display:flex;gap:8px">
+          <button class="block-type-btn active" id="block-type-day" onclick="selectBlockType('day')">🚫 Весь день</button>
+          <button class="block-type-btn" id="block-type-range" onclick="selectBlockType('range')">🕐 Перерыв</button>
+        </div>
+
+        <!-- Timeline (working days only) -->
+        <div id="block-timeline-section">
+          <div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px" id="block-timeline-label">Рабочее время</div>
+          <div id="block-timeline-bar" class="block-timeline-bar" onclick="onTimelineClick(event)"></div>
+          <div id="block-timeline-ticks" class="block-timeline-ticks"></div>
+          <div id="block-range-hint" class="block-range-hint" style="display:none">Нажмите на линию — выберите начало перерыва</div>
+        </div>
+
+        <!-- Time inputs (range mode only) -->
+        <div id="block-range-inputs" style="display:none">
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">С</div>
+              <input type="time" id="block-start-time" class="form-input"
+                     style="background:var(--gray-2);text-align:center;padding:10px 6px"
+                     oninput="renderBlockTimeline()">
+            </div>
+            <div style="color:var(--gray-4);padding-bottom:10px;font-size:20px;line-height:1">→</div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">До</div>
+              <input type="time" id="block-end-time" class="form-input"
+                     style="background:var(--gray-2);text-align:center;padding:10px 6px"
+                     oninput="renderBlockTimeline()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Reason -->
+        <input type="text" id="block-reason" class="form-input"
+               style="background:var(--gray-2)" placeholder="Причина (необязательно)">
+
+        <!-- Submit -->
+        <button class="btn-primary" onclick="addBlockedPeriod()">Заблокировать</button>
+      </div>
+    </div>
+
+    <!-- Existing blocks list -->
+    <div id="blocked-periods-list" style="padding:4px 12px 12px;border-top:1px solid var(--gray-2)"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn-primary" id="schedule-save-btn" onclick="saveSchedule()">Сохранить расписание</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ SETTINGS ═══════════════════════════════ -->
+<div id="page-settings" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>Настройки</h1>
+  </div>
+
+  <div class="mt-20"></div>
+
+  <!-- Профиль -->
+  <div class="settings-section-header">
+    <div class="settings-section-icon">👤</div>
+    <div class="settings-section-title">Профиль мастера</div>
+  </div>
+  <div class="section-card" style="margin:0 16px">
+    <!-- Avatar upload -->
+    <div style="padding:14px 16px 12px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--gray-2)">
+      <div id="s-avatar-preview" onclick="document.getElementById('s-avatar-input').click()" style="width:72px;height:72px;border-radius:50%;background:var(--gray-2);overflow:hidden;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;border:2px solid var(--gray-3)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3C9.24 3 7 5.24 7 8s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 12c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z" fill="currentColor" opacity="0.4"/></svg>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:4px">Фото профиля</div>
+        <div style="font-size:12px;color:var(--gray-6);margin-bottom:10px">Отображается в приложении клиента</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" style="margin:0;padding:6px 14px;font-size:12px" onclick="document.getElementById('s-avatar-input').click()">Загрузить</button>
+          <button id="s-avatar-delete-btn" class="btn-secondary" style="margin:0;padding:6px 14px;font-size:12px;display:none" onclick="deleteAvatar()">Удалить</button>
+        </div>
+      </div>
+      <input type="file" id="s-avatar-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="uploadAvatar(this)">
+    </div>
+    <div style="padding:12px 16px 6px">
+      <label class="form-label" style="margin-bottom:6px">Имя мастера</label>
+      <input class="form-input" id="s-name" placeholder="Zaman" style="background:var(--gray-2)">
+    </div>
+    <div style="padding:6px 16px">
+      <label class="form-label" style="margin-bottom:6px">Описание</label>
+      <input class="form-input" id="s-bio" placeholder="Premium Barbershop" style="background:var(--gray-2)">
+    </div>
+    <div style="padding:6px 16px">
+      <label class="form-label" style="margin-bottom:6px">Адрес / Локация</label>
+      <input class="form-input" id="s-location" placeholder="г. Алматы, ул. Абая 10" style="background:var(--gray-2)">
+    </div>
+    <div style="padding:6px 16px 14px">
+      <label class="form-label" style="margin-bottom:6px">Instagram (ссылка)</label>
+      <input class="form-input" id="s-instagram" type="url" inputmode="url" placeholder="https://instagram.com/yourpage" style="background:var(--gray-2)">
+    </div>
+  </div>
+
+  <div class="mt-28"></div>
+
+  <!-- Оплата -->
+  <div class="settings-section-header">
+    <div class="settings-section-icon">💳</div>
+    <div class="settings-section-title">Запись</div>
+  </div>
+  <div class="section-card" style="margin:0 16px">
+    <div style="padding:14px 16px">
+      <label class="form-label" style="margin-bottom:6px">На сколько недель вперёд можно записаться</label>
+      <div style="display:flex;align-items:center;gap:12px">
+        <input type="range" id="s-booking-weeks" min="1" max="5" value="2"
+               style="flex:1;accent-color:var(--accent)"
+               oninput="document.getElementById('s-booking-weeks-val').textContent=this.value+' нед'">
+        <span id="s-booking-weeks-val" style="font-size:14px;font-weight:700;min-width:44px;text-align:right">2 нед</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-28"></div>
+
+  <div style="padding:0 16px 8px">
+    <div class="settings-section-title">Кнопка оплаты</div>
+  </div>
+  <div class="section-card" style="margin:0 16px">
+    <div style="padding:14px 16px 6px">
+      <label class="form-label" style="margin-bottom:6px">Текст кнопки</label>
+      <input class="form-input" id="s-pay-btn-text" placeholder="Оплатить через Kaspi" style="background:var(--gray-2)">
+    </div>
+    <div style="padding:6px 16px 14px">
+      <label class="form-label" style="margin-bottom:6px">Ссылка (URL)</label>
+      <input class="form-input" id="s-pay-btn-url" placeholder="https://kaspi.kz/pay/..." type="url" inputmode="url" style="background:var(--gray-2)">
+    </div>
+  </div>
+
+  <div class="mt-28"></div>
+
+  <!-- Уведомления -->
+  <div class="settings-section-header">
+    <div class="settings-section-icon">🔔</div>
+    <div class="settings-section-title">Уведомления</div>
+  </div>
+  <div class="section-card" style="margin:0 16px">
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Уведомления в Telegram</div>
+        <div class="toggle-sub">Получать сообщения о новых записях и оплатах</div>
+      </div>
+      <button class="toggle" id="notifications-toggle" onclick="toggleNotifications()"></button>
+    </div>
+    <div class="divider"></div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Запись на сегодня</div>
+        <div class="toggle-sub">Экстра-уведомление если клиент записался на сегодня</div>
+      </div>
+      <button class="toggle" id="sameday-toggle" onclick="toggleSameDay()"></button>
+    </div>
+    <div class="divider"></div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Напоминания клиентам</div>
+        <div class="toggle-sub">За день (в 10:00) и за час до записи</div>
+      </div>
+      <button class="toggle" id="reminders-toggle" onclick="toggleReminders()"></button>
+    </div>
+  </div>
+
+  <div class="mt-28"></div>
+
+  <!-- Предоплата -->
+  <div class="settings-section-header">
+    <div class="settings-section-icon">💰</div>
+    <div class="settings-section-title">Предоплата</div>
+  </div>
+  <div class="section-card" style="margin:0 16px">
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Требовать предоплату</div>
+        <div class="toggle-sub">Клиент должен оплатить аванс при записи</div>
+      </div>
+      <button class="toggle" id="prepayment-toggle" onclick="togglePrepayment()"></button>
+    </div>
+    <div class="toggle-row" id="prepayment-percent-row">
+      <div>
+        <div class="toggle-label">Процент предоплаты</div>
+        <div class="toggle-sub" id="prepayment-percent-sub">30% от стоимости</div>
+      </div>
+      <input class="form-input" id="s-prepayment-pct"
+             style="width:68px;text-align:center;padding:10px 6px;background:var(--gray-2)"
+             type="number" min="1" max="100" onchange="updatePrepaymentSub()">
+    </div>
+    <div id="prepayment-mode-row" style="padding:14px 0 4px;border-top:1px solid var(--gray-2)">
+      <div class="toggle-label" style="margin-bottom:4px">Режим подтверждения оплаты</div>
+      <div class="toggle-sub" style="margin-bottom:12px">Как клиент сообщает об оплате</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="prepay-mode-option" id="mode-opt-manual">
+          <input type="radio" name="prepayment_mode" value="manual" onchange="savePrepaymentMode('manual')">
+          <div class="prepay-mode-content">
+            <div class="prepay-mode-title">Клиент нажимает «Я оплатил»</div>
+            <div class="prepay-mode-desc">После оплаты клиент жмёт кнопку — вы получаете уведомление</div>
+          </div>
+        </label>
+        <label class="prepay-mode-option" id="mode-opt-auto">
+          <input type="radio" name="prepayment_mode" value="auto" onchange="savePrepaymentMode('auto')">
+          <div class="prepay-mode-content">
+            <div class="prepay-mode-title">Страница закрывается автоматически</div>
+            <div class="prepay-mode-desc">После нажатия на кнопку оплаты приложение закрывается само</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-12"></div>
+
+  <div class="bottom-bar">
+    <button class="btn-primary" onclick="saveSettings()">Сохранить настройки</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ CLIENTS ═══════════════════════════════ -->
+<div id="page-clients" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showAdminPage('page-dash')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none"><path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </div>
+    <h1>Клиенты</h1>
+  </div>
+  <div style="display:flex;gap:8px;padding:12px 16px 4px">
+    <button id="cf-visited" class="client-filter-btn active" onclick="setClientFilter('visited')">С записями</button>
+    <button id="cf-all"     class="client-filter-btn"        onclick="setClientFilter('all')">Все в боте</button>
+  </div>
+  <div id="clients-list"><div class="loading" style="padding:32px"><div class="spinner"></div></div></div>
+</div>
+
+<!-- Access denied -->
+<div id="page-denied" class="page" style="display:none">
+  <div class="success-screen" style="gap:16px">
+    <div style="font-size:64px;opacity:0.3;filter:grayscale(1)">🔒</div>
+    <h2>Нет доступа</h2>
+    <p>Эта страница только для администратора</p>
+  </div>
+</div>
+
+<!-- Revenue modal -->
+<div id="revenue-modal" class="modal-overlay" onclick="if(event.target===this)closeRevenueModal()">
+  <div class="modal-sheet" style="max-height:80vh;display:flex;flex-direction:column;padding:0">
+    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--gray-3);flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="modal-title" style="margin:0" id="revenue-modal-title">Выручка</div>
+        <div style="font-size:12px;color:var(--gray-5);margin-top:3px">Закрытые записи · полная оплата</div>
+      </div>
+      <button onclick="closeRevenueModal()" style="background:var(--gray-2);border:1px solid var(--gray-3);border-radius:50%;width:32px;height:32px;color:var(--gray-6);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div id="revenue-list" style="overflow-y:auto;flex:1;padding:0"></div>
+    <div id="revenue-total-bar" style="padding:14px 20px;border-top:1px solid var(--gray-3);flex-shrink:0;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--gray-5);text-transform:uppercase;letter-spacing:0.08em;font-weight:700">Итого</span>
+        <span id="revenue-total-val" style="font-size:22px;font-weight:800;letter-spacing:-0.8px;color:#4ade80"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ban modal -->
+<div id="ban-modal" class="modal-overlay" onclick="if(event.target===this)closeBanModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">Заблокировать клиента</div>
+    <div class="modal-sub">Клиент не сможет создавать новые записи</div>
+    <input id="ban-reason" class="form-input" type="text" placeholder="Причина блокировки..." style="margin-bottom:14px">
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1;background:#e53935;border-color:#e53935" onclick="confirmBan()">Заблокировать</button>
+      <button class="btn-secondary" style="flex:0 0 auto" onclick="closeBanModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block conflict confirm modal -->
+<div id="block-conflict-modal" class="modal-overlay" onclick="if(event.target===this)closeBlockConflict()">
+  <div class="modal-sheet">
+    <div class="modal-title" style="color:#f0a500">⚠️ Есть записи</div>
+    <div id="block-conflict-text" style="font-size:13px;color:var(--gray-6);margin:8px 0 16px;line-height:1.6"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1;background:#e53935;border-color:#e53935" onclick="confirmBlockAnyway()">Всё равно заблокировать</button>
+      <button class="btn-secondary" style="flex:0 0 auto" onclick="closeBlockConflict()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel modal -->
+<div id="cancel-modal" class="modal-overlay" onclick="if(event.target===this)closeCancelModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">Причина отмены</div>
+    <input id="cancel-reason" class="form-input" type="text" placeholder="Например: болезнь, нет окошка..." style="margin-bottom:14px">
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1;background:#e53935;border-color:#e53935" onclick="confirmCancelAppt()">Отменить запись</button>
+      <button class="btn-secondary" style="flex:0 0 auto" onclick="closeCancelModal()">Назад</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+const API = '';
+const adminToken = new URLSearchParams(window.location.search).get('token') || '';
+function localDateStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+let adminState = {
+  apptDate: localDateStr(),
+};
+
+// Schedule state
+let scheduleState = {
+  days: [
+    {day_of_week:0, name:'Понедельник', short:'Пн', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:1, name:'Вторник',     short:'Вт', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:2, name:'Среда',       short:'Ср', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:3, name:'Четверг',     short:'Чт', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:4, name:'Пятница',     short:'Пт', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:5, name:'Суббота',     short:'Сб', active:false, start_time:'10:00', end_time:'20:00'},
+    {day_of_week:6, name:'Воскресенье', short:'Вс', active:false, start_time:'10:00', end_time:'20:00'},
+  ],
+  slot_duration: 60,
+};
+
+function authParams() { return `token=${encodeURIComponent(adminToken)}`; }
+function authBody()   { return { token: adminToken }; }
+
+// ── Init ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  if (tg) { tg.ready(); tg.expand(); }
+
+  // Show current date
+  const now = new Date();
+  const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const el = document.getElementById('dash-date');
+  if (el) el.innerHTML = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}<br>${now.getFullYear()}`;
+
+  try {
+    const res = await apiFetch(`/api/admin/check?${authParams()}`);
+    if (!res.is_admin) { showDenied(); return; }
+  } catch(e) { showDenied(); return; }
+
+  await loadDashboard();
+});
+
+function showDenied() {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = 'none'; });
+  const d = document.getElementById('page-denied');
+  if (d) { d.style.display = 'block'; d.classList.add('active'); }
+}
+
+// ── API ───────────────────────────────────────────────────
+async function apiFetch(path, options = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+  return res.json();
+}
+
+// ── Pages ─────────────────────────────────────────────────
+function showAdminPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = ''; });
+  document.getElementById(pageId).classList.add('active');
+  window.scrollTo(0, 0);
+
+  if (tg) {
+    if (pageId !== 'page-dash') {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => showAdminPage('page-dash'));
+    } else {
+      tg.BackButton.hide();
+    }
+  }
+
+  if (pageId === 'page-today')    { loadAdminCalendar().then(() => adminJumpToday()); }
+  if (pageId === 'page-payments') loadPendingPayments();
+  if (pageId === 'page-services') loadServices();
+  if (pageId === 'page-settings') loadSettings();
+  if (pageId === 'page-clients')  loadClients();
+  if (pageId === 'page-schedule') { loadSchedule().then(() => loadBlockedPeriods()); }
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [stats, info] = await Promise.all([
+      apiFetch(`/api/admin/stats?${authParams()}`),
+      apiFetch('/api/info'),
+    ]);
+    renderStats(stats);
+    const name = info.master_name || 'Барбершоп';
+    document.getElementById('dash-master-name').textContent = name + ' ✂️';
+  } catch(e) {
+    document.getElementById('stats-grid').innerHTML = '<div style="grid-column:1/-1;padding:20px;color:var(--gray-5)">Ошибка загрузки</div>';
+  }
+}
+
+function renderStats(s) {
+  const badge = document.getElementById('pay-badge');
+  if (s.pending_payments > 0) {
+    badge.textContent = s.pending_payments;
+    badge.style.display = 'inline-flex';
+  }
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card accent" style="cursor:pointer" onclick="showAdminPage('page-today')">
+      <div class="stat-icon-bg">📅</div>
+      <div class="stat-value">${s.today_count}</div>
+      <div class="stat-label">Сегодня</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon-bg">📊</div>
+      <div class="stat-value">${s.month_count}</div>
+      <div class="stat-label">За месяц</div>
+    </div>
+    <div class="stat-card wide revenue" style="cursor:pointer" onclick="openRevenueModal()">
+      <div class="stat-card-icon">💰</div>
+      <div class="stat-card-body">
+        <div class="stat-label" style="margin-bottom:4px">Выручка за месяц</div>
+        <div class="stat-value green" style="font-size:28px">${formatPrice(s.month_revenue)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--gray-5);flex-shrink:0;align-self:center">Детали →</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon-bg">👥</div>
+      <div class="stat-value">${s.clients_total}</div>
+      <div class="stat-label">Клиентов</div>
+    </div>
+    <div class="stat-card" style="${s.pending_payments>0?'border-color:rgba(240,165,0,0.3);cursor:pointer':''}" ${s.pending_payments>0?'onclick="showAdminPage(\'page-payments\')"':''}>
+      <div class="stat-icon-bg">💳</div>
+      <div class="stat-value ${s.pending_payments>0?'amber':''}">${s.pending_payments}</div>
+      <div class="stat-label">Ожид. оплат</div>
+    </div>
+  `;
+}
+
+// ── Admin Calendar ────────────────────────────────────────
+const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                   'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+let adminCal = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
+  selectedDate: null,
+  data: {}, // date -> {booked, total, percent}
+};
+
+async function loadAdminCalendar() {
+  document.getElementById('admin-cal-loading').style.display = 'block';
+  document.getElementById('admin-cal-grid').innerHTML = '';
+  document.getElementById('admin-cal-title').textContent =
+    `${MONTHS_RU[adminCal.month - 1]} ${adminCal.year}`;
+  try {
+    const res = await apiFetch(
+      `/api/admin/calendar?year=${adminCal.year}&month=${adminCal.month}&${authParams()}`
+    );
+    adminCal.data = {};
+    res.days.forEach(d => { adminCal.data[d.date] = d; });
+    renderAdminCalendar();
+  } catch(e) {
+    document.getElementById('admin-cal-grid').innerHTML =
+      '<div style="grid-column:1/-1;padding:12px;color:var(--gray-5)">Ошибка загрузки</div>';
+  }
+  document.getElementById('admin-cal-loading').style.display = 'none';
+  return true;
+}
+
+function renderAdminCalendar() {
+  const grid = document.getElementById('admin-cal-grid');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDay = new Date(adminCal.year, adminCal.month - 1, 1);
+  const daysInMonth = new Date(adminCal.year, adminCal.month, 0).getDate();
+
+  let startDow = firstDay.getDay() - 1;
+  if (startDow < 0) startDow = 6;
+
+  const circ = 87.96; // 2 * π * 14
+
+  let html = '';
+  for (let i = 0; i < startDow; i++) html += '<div class="a-cell"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(adminCal.year, adminCal.month - 1, d);
+    const dateStr = `${adminCal.year}-${String(adminCal.month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday    = dateObj.getTime() === today.getTime();
+    const isPast     = dateObj < today;
+    const isSelected = adminCal.selectedDate === dateStr;
+    const info       = adminCal.data[dateStr] || {booked:0, total:0, percent:0};
+    const hasWork    = info.total > 0;
+    const hasAppts   = info.booked > 0;
+
+    const numCls = isPast ? 'past' : isToday ? 'today' : '';
+    const offset = circ * (1 - info.percent / 100);
+
+    // Decide text color
+    const textFill = isSelected ? '#000' : isToday ? '#f0a500' : isPast ? '#555' : '#fff';
+    const bgFill   = isSelected ? '#4ade80' : 'none';
+    const ringStroke = isSelected ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.08)';
+    const arcStroke  = hasAppts ? '#4ade80' : 'none';
+
+    const clickable = !isPast;
+
+    html += `<div class="a-cell ${clickable ? 'clickable' : ''} ${isSelected ? 'a-selected' : ''}"
+                  ${clickable ? `onclick="adminSelectDate('${dateStr}')"` : ''}>`;
+
+    if (hasWork) {
+      // SVG circle
+      html += `<svg viewBox="0 0 36 36" width="36" height="36" style="overflow:visible">
+        <circle cx="18" cy="18" r="14" fill="${bgFill}" stroke="${ringStroke}" stroke-width="2"/>
+        ${hasAppts ? `<circle cx="18" cy="18" r="14" fill="none" stroke="${arcStroke}" stroke-width="2.5"
+          stroke-dasharray="${circ} ${circ}" stroke-dashoffset="${offset.toFixed(2)}"
+          transform="rotate(-90 18 18)" stroke-linecap="round"/>` : ''}
+        <text x="18" y="22.5" text-anchor="middle" font-size="12" font-weight="700"
+              fill="${textFill}" font-family="-apple-system,BlinkMacSystemFont,sans-serif">${d}</text>
+      </svg>`;
+      if (hasAppts) {
+        html += `<div class="a-cell-count has">${info.booked}</div>`;
+      } else {
+        html += `<div class="a-cell-count">&nbsp;</div>`;
+      }
+    } else {
+      // Plain day number (no working hours)
+      html += `<div class="a-cell-num ${numCls}" style="font-size:13px;padding:10px 0">${d}</div>
+               <div class="a-cell-count">&nbsp;</div>`;
+    }
+
+    html += '</div>';
+  }
+
+  grid.innerHTML = html;
+}
+
+function adminJumpToday() {
+  const today = new Date();
+  const todayStr = localDateStr(today);
+  if (adminCal.year !== today.getFullYear() || adminCal.month !== today.getMonth() + 1) {
+    adminCal.year = today.getFullYear();
+    adminCal.month = today.getMonth() + 1;
+    loadAdminCalendar().then(() => adminSelectDate(todayStr));
+  } else {
+    adminSelectDate(todayStr);
+  }
+}
+
+function adminCalPrev() {
+  const today = new Date();
+  if (adminCal.year === today.getFullYear() && adminCal.month <= today.getMonth() + 1) return;
+  adminCal.month--;
+  if (adminCal.month < 1) { adminCal.month = 12; adminCal.year--; }
+  loadAdminCalendar();
+}
+function adminCalNext() {
+  adminCal.month++;
+  if (adminCal.month > 12) { adminCal.month = 1; adminCal.year++; }
+  loadAdminCalendar();
+}
+
+async function adminSelectDate(dateStr) {
+  adminCal.selectedDate = dateStr;
+  adminState.apptDate = dateStr;
+  renderAdminCalendar();
+
+  const panel = document.getElementById('admin-appt-panel');
+  panel.style.display = 'block';
+
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const d = new Date(dateStr + 'T00:00:00');
+  document.getElementById('admin-appt-panel-title').textContent =
+    `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  await loadTodayAppts();
+}
+
+async function loadTodayAppts() {
+  const cont = document.getElementById('today-list');
+  if (!adminState.apptDate) return;
+  cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/admin/appointments?${authParams()}&date=${adminState.apptDate}`);
+    if (!data.appointments.length) {
+      cont.innerHTML = '<div class="empty-state" style="padding:28px 20px"><div style="font-size:32px;margin-bottom:10px">📭</div><h3>Записей нет</h3><p>На этот день нет записей</p></div>';
+      return;
+    }
+    const statusLabel = {pending:'Ожидает', new:'Ожидает', confirmed:'Подтверждён', cancelled:'Отменён'};
+    const statusDot = {pending:'#f0a500', new:'#f0a500', confirmed:'#4ade80', cancelled:'#555'};
+    cont.innerHTML = data.appointments.map(a => {
+      const name = a.name || 'Клиент';
+      const phone = a.phone || '';
+      const svcs = a.services.map(s => s.name).join(', ');
+      const st = a.status || 'pending';
+      const timeColor = statusDot[st] || 'var(--gray-5)';
+      const tgBtn = a.tg_username
+        ? `<button class="btn-sm tg" onclick="openTg('${escHtml(a.tg_username)}')">✉️</button>`
+        : '';
+      const canAct = ['pending','new','confirmed'].includes(st);
+      const badgeCls = st === 'confirmed' ? 'confirmed' : st === 'cancelled' ? 'cancelled' : 'pending';
+      return `
+        <div id="appt-card-${a.id}" style="transition:opacity 0.2s">
+          <div class="appt-row">
+            <div class="appt-time-block">
+              <div class="appt-time-big">${a.time}</div>
+              <div class="appt-time-status" style="color:${timeColor}">${statusLabel[st]||st}</div>
+            </div>
+            <div class="appt-row-info">
+              <div class="appt-row-name">${escHtml(name)}</div>
+              <div class="appt-row-svc">${escHtml(phone ? phone + ' · ' + svcs : svcs)}</div>
+              ${a.notes ? `<div style="font-size:11px;color:#f0a500;margin-top:3px">💬 ${escHtml(a.notes)}</div>` : ''}
+            </div>
+            <div class="appt-row-right">
+              <div class="appt-row-price">${formatPrice(a.total_price)}</div>
+              <div class="appt-status-badge ${badgeCls}">${statusLabel[st]||st}</div>
+            </div>
+          </div>
+          ${canAct ? `
+          <div class="appt-row-actions">
+            ${['pending','new'].includes(st) ? `<button class="btn-sm confirm" onclick="confirmAppt(${a.id})">✓ Подтвердить</button>` : ''}
+            ${tgBtn}
+            <button class="btn-sm danger" onclick="cancelApptPrompt(${a.id})">✕ Отменить</button>
+          </div>` : ''}
+        </div>`;
+    }).join('');
+    const isToday = adminState.apptDate === localDateStr(new Date());
+    if (isToday) updateTimeNowLine(data.appointments);
+  } catch(e) {
+    cont.innerHTML = `<div style="padding:20px;color:var(--gray-5)">Ошибка: ${e.message}</div>`;
+  }
+}
+
+let _timeNowTimer = null;
+function updateTimeNowLine(appointments) {
+  const cont = document.getElementById('today-list');
+  if (!cont) return;
+  const old = document.getElementById('time-now-line');
+  if (old) old.remove();
+
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const label = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const line = document.createElement('div');
+  line.id = 'time-now-line';
+  line.innerHTML = `<div class="dot"></div><div class="line"></div><div class="label">${label}</div>`;
+
+  const cards = cont.querySelectorAll('[id^="appt-card-"]');
+  let inserted = false;
+
+  for (const card of cards) {
+    const timeEl = card.querySelector('.appt-time-big');
+    if (!timeEl) continue;
+    const [h, m] = timeEl.textContent.trim().split(':').map(Number);
+    if (!isNaN(h) && (h * 60 + m) > nowMins) {
+      cont.insertBefore(line, card);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) cont.appendChild(line);
+
+  if (_timeNowTimer) clearInterval(_timeNowTimer);
+  _timeNowTimer = setInterval(() => {
+    if (adminState.apptDate === localDateStr(new Date())) {
+      const apptCards = document.querySelectorAll('#today-list [id^="appt-card-"]');
+      if (apptCards.length) updateTimeNowLine(null);
+    } else {
+      clearInterval(_timeNowTimer);
+    }
+  }, 60000);
+}
+
+async function confirmAppt(id) {
+  const card = document.getElementById(`appt-card-${id}`);
+  if (card) card.style.opacity = '0.3';
+  try {
+    await apiFetch(`/api/admin/appointments/${id}/confirm`, { method: 'POST', body: JSON.stringify(authBody()) });
+    if (card) card.remove();
+    showToast('✓ Запись подтверждена');
+    loadDashboard();
+  } catch(e) {
+    if (card) card.style.opacity = '1';
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+let _cancelApptId = null;
+function cancelApptPrompt(id) {
+  _cancelApptId = id;
+  document.getElementById('cancel-reason').value = '';
+  document.getElementById('cancel-modal').classList.add('show');
+}
+function closeCancelModal() {
+  document.getElementById('cancel-modal').classList.remove('show');
+  _cancelApptId = null;
+}
+async function confirmCancelAppt() {
+  if (!_cancelApptId) return;
+  const id = _cancelApptId;
+  const reason = document.getElementById('cancel-reason').value.trim();
+  const card = document.getElementById(`appt-card-${id}`) || document.getElementById(`pay-card-${id}`);
+  closeCancelModal();
+  if (card) card.style.opacity = '0.3';
+  try {
+    await apiFetch(`/api/admin/appointments/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ ...authBody(), reason }),
+    });
+    if (card) card.remove();
+    showToast('Запись отменена');
+    // update calendar arc immediately
+    const dateKey = adminState.apptDate;
+    if (dateKey && adminCal.data[dateKey] && adminCal.data[dateKey].booked > 0) {
+      adminCal.data[dateKey].booked--;
+      const t = adminCal.data[dateKey].total || 1;
+      adminCal.data[dateKey].percent = Math.round(adminCal.data[dateKey].booked / t * 100);
+      renderAdminCalendar();
+    }
+    loadDashboard();
+  } catch(e) {
+    if (card) card.style.opacity = '1';
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+function openTg(username) {
+  if (tg) tg.openTelegramLink(`https://t.me/${username}`);
+  else window.open(`https://t.me/${username}`, '_blank');
+}
+
+// ── Schedule ──────────────────────────────────────────────
+async function loadSchedule() {
+  const cont = document.getElementById('schedule-days-list');
+  cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/admin/schedule?${authParams()}`);
+    scheduleState.slot_duration = data.slot_duration || 60;
+    scheduleState.days.forEach(d => d.active = false);
+    data.hours.forEach(h => {
+      const day = scheduleState.days.find(d => d.day_of_week === h.day_of_week);
+      if (day) { day.active = true; day.start_time = h.start_time; day.end_time = h.end_time; }
+    });
+    renderScheduleDays();
+    renderIntervalBtns();
+    initBlockCalendar();
+  } catch(e) { showToast('Ошибка загрузки расписания'); }
+}
+
+function renderScheduleDays() {
+  const cont = document.getElementById('schedule-days-list');
+  cont.innerHTML = scheduleState.days.map((day, idx) => `
+    <div class="schedule-row">
+      <div class="schedule-row-head">
+        <div>
+          <div class="schedule-day-name">${day.name}</div>
+          <div class="schedule-day-hours">${day.active ? `${day.start_time} — ${day.end_time}` : 'Выходной'}</div>
+        </div>
+        <button class="toggle ${day.active ? 'on' : ''}" onclick="toggleDay(${idx})"></button>
+      </div>
+      ${day.active ? `
+        <div class="schedule-times">
+          <div>
+            <div class="schedule-time-label">Начало</div>
+            <input class="form-input" type="time" value="${day.start_time}"
+                   onchange="updateDayTime(${idx},'start_time',this.value)" style="text-align:center;padding:10px">
+          </div>
+          <div>
+            <div class="schedule-time-label">Конец</div>
+            <input class="form-input" type="time" value="${day.end_time}"
+                   onchange="updateDayTime(${idx},'end_time',this.value)" style="text-align:center;padding:10px">
+          </div>
+        </div>` : ''}
+    </div>
+  `).join('');
+}
+
+function toggleDay(idx) {
+  scheduleState.days[idx].active = !scheduleState.days[idx].active;
+  renderScheduleDays();
+}
+
+function updateDayTime(idx, field, val) {
+  scheduleState.days[idx][field] = val;
+}
+
+function renderIntervalBtns() {
+  document.querySelectorAll('.interval-btn').forEach(btn => {
+    btn.classList.toggle('selected', parseInt(btn.dataset.val) === scheduleState.slot_duration);
+  });
+}
+
+function selectInterval(val) {
+  scheduleState.slot_duration = val;
+  renderIntervalBtns();
+}
+
+async function saveSchedule() {
+  const btn = document.getElementById('schedule-save-btn');
+  btn.disabled = true; btn.textContent = 'Сохранение...';
+  try {
+    await apiFetch('/api/admin/schedule', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...authBody(),
+        days: scheduleState.days,
+        slot_duration: scheduleState.slot_duration,
+      }),
+    });
+    showToast('✓ Расписание сохранено');
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Сохранить расписание';
+}
+
+// ── Blocked Periods ───────────────────────────────────────
+const blockState = {
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth() + 1,
+  selectedDate: null,
+  blockType: 'day',
+  tapStep: 0,
+  periods: [],
+};
+const BLK_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const BLK_MONTHS_S = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const BLK_DAYS_FULL = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+
+function blkToMins(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function blkFromMins(m) { return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+
+function initBlockCalendar() {
+  updateBlockCalTitle();
+  renderBlockCalendar();
+}
+
+function updateBlockCalTitle() {
+  const el = document.getElementById('block-cal-title');
+  if (el) el.textContent = BLK_MONTHS[blockState.calMonth-1] + ' ' + blockState.calYear;
+}
+
+function blockCalPrev() {
+  const t = new Date();
+  if (blockState.calYear === t.getFullYear() && blockState.calMonth <= t.getMonth()+1) return;
+  if (--blockState.calMonth < 1) { blockState.calMonth=12; blockState.calYear--; }
+  blockState.selectedDate = null;
+  document.getElementById('block-date-panel').style.display = 'none';
+  updateBlockCalTitle(); renderBlockCalendar(); renderBlockedPeriodsList();
+}
+function blockCalNext() {
+  if (++blockState.calMonth > 12) { blockState.calMonth=1; blockState.calYear++; }
+  blockState.selectedDate = null;
+  document.getElementById('block-date-panel').style.display = 'none';
+  updateBlockCalTitle(); renderBlockCalendar(); renderBlockedPeriodsList();
+}
+
+function renderBlockCalendar() {
+  const container = document.getElementById('block-cal-days');
+  if (!container) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const firstDay = new Date(blockState.calYear, blockState.calMonth-1, 1);
+  const daysInMonth = new Date(blockState.calYear, blockState.calMonth, 0).getDate();
+  let startDow = firstDay.getDay()-1; if (startDow<0) startDow=6;
+
+  const workingDays = new Set(scheduleState.days.filter(d=>d.active).map(d=>d.day_of_week));
+  const blockedFull = new Set(blockState.periods.filter(p=>!p.start_time).map(p=>p.date));
+  const hasBlock = new Set(blockState.periods.map(p=>p.date));
+
+  let html = '';
+  for (let i=0; i<startDow; i++) html += '<div></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const dateObj = new Date(blockState.calYear, blockState.calMonth-1, d);
+    const dateStr = `${blockState.calYear}-${String(blockState.calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast = dateObj < today;
+    const isToday = dateObj.getTime() === today.getTime();
+    const isSelected = blockState.selectedDate === dateStr;
+    const dow = dateObj.getDay()===0 ? 6 : dateObj.getDay()-1;
+    const isWorking = workingDays.has(dow);
+    const isBlockedFull = blockedFull.has(dateStr);
+    const hasB = hasBlock.has(dateStr);
+
+    let cls = 'block-cal-cell';
+    if (isPast) cls += ' bcc-past';
+    else if (isWorking) cls += ' bcc-working';
+    if (isToday) cls += ' bcc-today';
+    if (isSelected) cls += ' bcc-selected';
+    if (isBlockedFull) cls += ' bcc-blocked-full';
+    else if (hasB) cls += ' bcc-has-block';
+
+    const fn = !isPast ? `onclick="selectBlockDate('${dateStr}')"` : '';
+    html += `<div class="${cls}" ${fn}>${d}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function selectBlockDate(dateStr) {
+  blockState.selectedDate = dateStr;
+  blockState.tapStep = 0;
+  renderBlockCalendar();
+
+  const panel = document.getElementById('block-date-panel');
+  if (panel) panel.style.display = 'block';
+
+  const d = new Date(dateStr+'T00:00:00');
+  document.getElementById('block-date-label').textContent =
+    `${d.getDate()} ${BLK_MONTHS_S[d.getMonth()]} ${d.getFullYear()}`;
+
+  const dow = d.getDay()===0 ? 6 : d.getDay()-1;
+  const workDay = scheduleState.days.find(x=>x.day_of_week===dow);
+  const isWorking = workDay && workDay.active;
+  document.getElementById('block-workday-label').textContent = isWorking
+    ? `${BLK_DAYS_FULL[d.getDay()]} · ${workDay.start_time}–${workDay.end_time}`
+    : `${BLK_DAYS_FULL[d.getDay()]} · Выходной`;
+
+  document.getElementById('block-timeline-section').style.display = isWorking ? 'block' : 'none';
+  document.getElementById('block-start-time').value = '';
+  document.getElementById('block-end-time').value = '';
+
+  selectBlockType('day');
+  renderBlockTimeline();
+  setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 80);
+}
+
+function clearBlockDate() {
+  blockState.selectedDate = null;
+  blockState.tapStep = 0;
+  renderBlockCalendar();
+  document.getElementById('block-date-panel').style.display = 'none';
+}
+
+function selectBlockType(type) {
+  blockState.blockType = type;
+  blockState.tapStep = 0;
+  document.getElementById('block-type-day').classList.toggle('active', type==='day');
+  document.getElementById('block-type-range').classList.toggle('active', type==='range');
+  const ri = document.getElementById('block-range-inputs');
+  if (ri) ri.style.display = type==='range' ? 'block' : 'none';
+  const hint = document.getElementById('block-range-hint');
+  if (hint) hint.style.display = type==='range' ? 'block' : 'none';
+  const bar = document.getElementById('block-timeline-bar');
+  if (bar) bar.style.cursor = type==='range' ? 'pointer' : 'default';
+  renderBlockTimeline();
+}
+
+function renderBlockTimeline() {
+  const bar = document.getElementById('block-timeline-bar');
+  const ticks = document.getElementById('block-timeline-ticks');
+  if (!bar || !ticks) return;
+  const date = blockState.selectedDate;
+  if (!date) return;
+
+  const d = new Date(date+'T00:00:00');
+  const dow = d.getDay()===0 ? 6 : d.getDay()-1;
+  const workDay = scheduleState.days.find(x=>x.day_of_week===dow);
+  if (!workDay || !workDay.active) {
+    bar.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--gray-5)">Выходной</div>';
+    ticks.innerHTML = ''; return;
+  }
+
+  const wS = blkToMins(workDay.start_time);
+  const wE = blkToMins(workDay.end_time);
+  const total = wE - wS;
+  let html = '';
+
+  // Existing blocks for this date (red)
+  blockState.periods.filter(p=>p.date===date && p.start_time).forEach(p => {
+    const pS = Math.max(wS, blkToMins(p.start_time));
+    const pE = Math.min(wE, blkToMins(p.end_time));
+    if (pE<=pS) return;
+    const l = (pS-wS)/total*100, w = (pE-pS)/total*100;
+    html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(255,69,58,.55);border-left:1px solid rgba(255,69,58,.8);border-right:1px solid rgba(255,69,58,.8)"></div>`;
+  });
+
+  // Selected range (blue)
+  if (blockState.blockType==='range') {
+    const stV = document.getElementById('block-start-time').value;
+    const etV = document.getElementById('block-end-time').value;
+    if (stV) {
+      const selS = Math.max(wS, blkToMins(stV));
+      if (!etV) {
+        const l = (selS-wS)/total*100;
+        html += `<div style="position:absolute;top:0;left:${l}%;width:2px;height:100%;background:#4db8ff;box-shadow:0 0 6px #4db8ff"></div>`;
+        html += `<div style="position:absolute;top:0;left:${l}%;width:${100-l}%;height:100%;background:rgba(10,132,255,.08)"></div>`;
+      } else {
+        const selE = Math.min(wE, blkToMins(etV));
+        if (selE>selS) {
+          const l = (selS-wS)/total*100, w = (selE-selS)/total*100;
+          html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(10,132,255,.35);border-left:2px solid #4db8ff;border-right:2px solid #4db8ff"></div>`;
+        }
+      }
+    }
+  }
+  bar.innerHTML = html;
+
+  // Ticks
+  const step = total<=6*60 ? 60 : (total<=10*60 ? 120 : 180);
+  let tickHtml = '';
+  for (let m=0; m<=total; m+=step) {
+    const l = m/total*100;
+    const t = blkFromMins(wS+m);
+    const tx = m===0 ? '' : (m+step>total ? 'translateX(-100%)' : 'translateX(-50%)');
+    tickHtml += `<span style="position:absolute;left:${l}%;transform:${tx};white-space:nowrap">${t}</span>`;
+  }
+  if (total%step!==0) {
+    tickHtml += `<span style="position:absolute;left:100%;transform:translateX(-100%)">${workDay.end_time}</span>`;
+  }
+  ticks.innerHTML = tickHtml;
+}
+
+function onTimelineClick(event) {
+  if (blockState.blockType!=='range') return;
+  const date = blockState.selectedDate; if (!date) return;
+  const d = new Date(date+'T00:00:00');
+  const dow = d.getDay()===0 ? 6 : d.getDay()-1;
+  const workDay = scheduleState.days.find(x=>x.day_of_week===dow);
+  if (!workDay || !workDay.active) return;
+
+  const wS = blkToMins(workDay.start_time);
+  const wE = blkToMins(workDay.end_time);
+  const bar = document.getElementById('block-timeline-bar');
+  const rect = bar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (event.clientX-rect.left)/rect.width));
+  const snap = scheduleState.slot_duration || 30;
+  const raw = wS + pct*(wE-wS);
+  const snapped = Math.max(wS, Math.min(wE, Math.round(raw/snap)*snap));
+  const t = blkFromMins(snapped);
+
+  const stI = document.getElementById('block-start-time');
+  const etI = document.getElementById('block-end-time');
+  const hint = document.getElementById('block-range-hint');
+
+  if (blockState.tapStep===0 || etI.value) {
+    stI.value = t; etI.value = ''; blockState.tapStep = 1;
+    if (hint) hint.textContent = `Начало: ${t} → Выберите конец`;
+  } else {
+    if (snapped > blkToMins(stI.value)) {
+      etI.value = t; blockState.tapStep = 0;
+      if (hint) hint.textContent = `Выбрано: ${stI.value} — ${t}`;
+    } else {
+      stI.value = t; etI.value = ''; blockState.tapStep = 1;
+      if (hint) hint.textContent = `Начало: ${t} → Выберите конец`;
+    }
+  }
+  renderBlockTimeline();
+}
+
+// Pending block data when conflict found
+let _pendingBlock = null;
+
+async function addBlockedPeriod() {
+  const date = blockState.selectedDate;
+  if (!date) { showToast('Выберите дату'); return; }
+
+  const st = blockState.blockType === 'range' ? document.getElementById('block-start-time').value : null;
+  const et = blockState.blockType === 'range' ? document.getElementById('block-end-time').value : null;
+  if (blockState.blockType === 'range') {
+    if (!st || !et) { showToast('Выберите диапазон на линии времени'); return; }
+    if (st >= et) { showToast('Начало должно быть раньше конца'); return; }
+  }
+
+  // Check for conflicting appointments
+  const conflicts = await getConflictingAppointments(date, st, et);
+  if (conflicts.length > 0) {
+    _pendingBlock = { date, start_time: st, end_time: et, reason: document.getElementById('block-reason').value.trim() };
+    const lines = conflicts.map(a => `• ${a.time} — ${escHtml(a.name)}`).join('\n');
+    const dayType = st ? `${st}–${et}` : 'весь день';
+    document.getElementById('block-conflict-text').innerHTML =
+      `На <b>${date}</b> (${dayType}) ${conflicts.length === 1 ? 'есть запись' : `есть ${conflicts.length} записи`}:<br><br>`
+      + conflicts.map(a => `<b>${a.time}</b> — ${escHtml(a.name)}`).join('<br>')
+      + '<br><br>Эти клиенты не будут автоматически уведомлены.';
+    document.getElementById('block-conflict-modal').classList.add('show');
+    return;
+  }
+
+  await doSaveBlock({ date, start_time: st, end_time: et, reason: document.getElementById('block-reason').value.trim() });
+}
+
+async function getConflictingAppointments(date, startTime, endTime) {
+  try {
+    const data = await apiFetch(`/api/admin/appointments?date=${date}&${authParams()}`);
+    const appts = data.appointments || [];
+    if (!startTime) return appts; // full-day: all appointments conflict
+    const bS = blkToMins(startTime), bE = blkToMins(endTime);
+    return appts.filter(a => {
+      const aS = blkToMins(a.time);
+      const dur = (a.services || []).reduce((s, x) => s + (x.duration_min || 60), 0) || 60;
+      return aS < bE && (aS + dur) > bS;
+    });
+  } catch(e) { return []; }
+}
+
+async function confirmBlockAnyway() {
+  closeBlockConflict();
+  if (_pendingBlock) {
+    await doSaveBlock(_pendingBlock);
+    _pendingBlock = null;
+  }
+}
+
+function closeBlockConflict() {
+  document.getElementById('block-conflict-modal').classList.remove('show');
+}
+
+async function doSaveBlock(blockData) {
+  const body = { ...authBody(), date: blockData.date, reason: blockData.reason || '' };
+  if (blockData.start_time) { body.start_time = blockData.start_time; body.end_time = blockData.end_time; }
+  try {
+    await apiFetch('/api/admin/blocked-periods', { method: 'POST', body: JSON.stringify(body) });
+    document.getElementById('block-reason').value = '';
+    document.getElementById('block-start-time').value = '';
+    document.getElementById('block-end-time').value = '';
+    blockState.tapStep = 0;
+    showToast('✓ Добавлено');
+    await loadBlockedPeriods();
+    clearBlockDate();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+async function loadBlockedPeriods() {
+  try {
+    const data = await apiFetch(`/api/admin/blocked-periods?${authParams()}`);
+    blockState.periods = data.periods || [];
+    renderBlockCalendar();
+    renderBlockedPeriodsList();
+    renderBlockTimeline();
+  } catch(e) { /* silent */ }
+}
+
+function renderBlockedPeriodsList() {
+  const cont = document.getElementById('blocked-periods-list');
+  if (!cont) return;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const monthPeriods = blockState.periods.filter(p => {
+    const [y, m] = p.date.split('-').map(Number);
+    return y === blockState.calYear && m === blockState.calMonth && p.date >= todayStr;
+  });
+  if (!monthPeriods.length) {
+    cont.innerHTML = '<div style="padding:10px 0 4px;text-align:center;font-size:13px;color:var(--gray-5)">Нет блоков в этом месяце</div>';
+    return;
+  }
+  cont.innerHTML = monthPeriods.map(p => {
+    const d = new Date(p.date+'T00:00:00');
+    const isRange = !!p.start_time;
+    const timeLabel = isRange ? `${p.start_time} — ${p.end_time}` : 'Весь день';
+    const timeCls = isRange ? 'color:var(--amber)' : 'color:#ff453a';
+    const reasonPart = p.reason ? ` · ${escHtml(p.reason)}` : '';
+    return `<div class="block-period-item">
+      <div class="block-period-left">
+        <div class="block-period-daynum">${d.getDate()}</div>
+        <div class="block-period-month">${BLK_MONTHS_S[d.getMonth()]}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;color:var(--white)">${BLK_DAYS_FULL[d.getDay()]}${reasonPart}</div>
+        <div style="font-size:12px;margin-top:2px;${timeCls}">${timeLabel}</div>
+      </div>
+      <button class="block-period-del" onclick="deleteBlockedPeriod(${p.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function deleteBlockedPeriod(id) {
+  try {
+    await apiFetch(`/api/admin/blocked-periods/${id}?${authParams()}`, { method: 'DELETE' });
+    showToast('Удалено');
+    await loadBlockedPeriods();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+// ── Clients ───────────────────────────────────────────────
+let _allClients = [];
+let _clientFilter = 'visited';
+
+function setClientFilter(f) {
+  _clientFilter = f;
+  document.getElementById('cf-visited')?.classList.toggle('active', f === 'visited');
+  document.getElementById('cf-all')?.classList.toggle('active', f === 'all');
+  renderClients();
+}
+
+function renderClients() {
+  const cont = document.getElementById('clients-list');
+  if (!cont) return;
+  const list = _clientFilter === 'visited'
+    ? _allClients.filter(c => Number(c.visit_count) > 0)
+    : _allClients;
+
+  if (!list.length) {
+    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><h3>Клиентов нет</h3></div>';
+    return;
+  }
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  cont.innerHTML = list.map(c => {
+    const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || c.username || 'Клиент';
+    const uname = c.username ? `@${c.username}` : `ID: ${c.telegram_id}`;
+    const banned = !!c.banned;
+    let lastVisit = '—';
+    if (c.last_visit) { const d = new Date(c.last_visit); lastVisit = `${d.getDate()} ${months[d.getMonth()]}`; }
+    const avatarUrl = `/api/admin/clients/${c.telegram_id}/avatar?${authParams()}`;
+    const avatarHtml = c.photo_file_id
+      ? `<img src="${avatarUrl}" class="client-avatar-img ${banned ? 'banned-av' : ''}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+             alt="">`
+      : '';
+    const fallbackHtml = `<div class="client-avatar ${banned ? 'banned-av' : ''}" style="${c.photo_file_id ? 'display:none' : ''}">${banned ? '🚫' : '👤'}</div>`;
+    return `
+      <div class="client-card ${banned ? 'banned' : ''}">
+        <div class="client-header">
+          <div style="position:relative;flex-shrink:0">${avatarHtml}${fallbackHtml}</div>
+          <div style="flex:1;min-width:0">
+            <div class="client-name">${escHtml(name)}</div>
+            <div class="client-meta">${escHtml(uname)}</div>
+            ${banned ? `<div class="client-ban-reason">🚫 ${c.ban_reason ? escHtml(c.ban_reason) : 'Заблокирован'}</div>` : ''}
+          </div>
+        </div>
+        <div class="client-stats">
+          <div class="client-stat">
+            <div class="client-stat-val">${c.visit_count || 0}</div>
+            <div class="client-stat-lbl">Визитов</div>
+          </div>
+          <div class="client-stat">
+            <div class="client-stat-val">${formatPrice(c.total_spent || 0)}</div>
+            <div class="client-stat-lbl">Потрачено</div>
+          </div>
+          <div class="client-stat">
+            <div class="client-stat-val">${lastVisit}</div>
+            <div class="client-stat-lbl">Последний</div>
+          </div>
+        </div>
+        <div class="client-actions">
+          ${c.username ? `<button class="btn-sm confirm" onclick="openTg('${escHtml(c.username)}')">✉️ Написать</button>` : ''}
+          ${banned
+            ? `<button class="btn-sm confirm" onclick="unbanClient(${c.telegram_id})">✓ Разблокировать</button>`
+            : `<button class="btn-sm danger" onclick="banClientPrompt(${c.telegram_id})">🚫 Заблокировать</button>`}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function loadClients() {
+  const cont = document.getElementById('clients-list');
+  cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/admin/clients?${authParams()}`);
+    _allClients = data.clients || [];
+    renderClients();
+  } catch(e) { cont.innerHTML = `<div style="padding:20px;color:var(--gray-5)">Ошибка: ${e.message}</div>`; }
+}
+
+let _banTgId = null;
+function banClientPrompt(tgId) {
+  _banTgId = tgId;
+  document.getElementById('ban-reason').value = '';
+  document.getElementById('ban-modal').classList.add('show');
+}
+function closeBanModal() {
+  document.getElementById('ban-modal').classList.remove('show');
+  _banTgId = null;
+}
+async function confirmBan() {
+  if (!_banTgId) return;
+  const reason = document.getElementById('ban-reason').value.trim();
+  try {
+    await apiFetch(`/api/admin/clients/${_banTgId}/ban`, { method: 'POST', body: JSON.stringify({ ...authBody(), reason }) });
+    closeBanModal(); showToast('Клиент заблокирован'); loadClients();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+async function unbanClient(tgId) {
+  try {
+    await apiFetch(`/api/admin/clients/${tgId}/unban`, { method: 'POST', body: JSON.stringify(authBody()) });
+    showToast('✓ Клиент разблокирован'); loadClients();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+// ── Pending Payments ──────────────────────────────────────
+async function loadPendingPayments() {
+  const cont = document.getElementById('payments-list');
+  cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/admin/pending-payments?${authParams()}`);
+    if (!data.appointments.length) {
+      cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><h3>Всё оплачено</h3><p>Ожидающих оплат нет</p></div>';
+      return;
+    }
+    cont.innerHTML = data.appointments.map(a => {
+      const name = a.name || 'Клиент';
+      const svcs = a.services.map(s => s.name).join(', ');
+      return `
+        <div class="pay-card" id="pay-card-${a.id}" style="transition:opacity 0.2s">
+          <div class="pay-card-header">
+            <div>
+              <div class="pay-card-name">${escHtml(name)}</div>
+              <div style="font-size:12px;color:var(--gray-5);margin-top:3px">${a.phone ? escHtml(a.phone) + ' · ' : ''}#${a.id} · ${a.date} ${a.time}</div>
+            </div>
+            <div class="pay-card-amount">${formatPrice(a.prepayment_amount)}</div>
+          </div>
+          <div class="pay-card-meta">${escHtml(svcs)} · Итого: ${formatPrice(a.total_price)}</div>
+          <div class="pay-card-actions">
+            <button class="btn-sm confirm" onclick="confirmPayment(${a.id})">✓ Оплата получена</button>
+            <button class="btn-sm danger" onclick="cancelApptPrompt(${a.id})">Отменить</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) { cont.innerHTML = `<div style="padding:20px;color:var(--gray-5)">Ошибка: ${e.message}</div>`; }
+}
+
+async function confirmPayment(id) {
+  const card = document.getElementById(`pay-card-${id}`);
+  if (card) card.style.opacity = '0.3';
+  try {
+    await apiFetch(`/api/admin/payments/${id}/confirm`, { method: 'POST', body: JSON.stringify(authBody()) });
+    if (card) card.remove();
+    showToast('✓ Оплата подтверждена');
+    loadDashboard();
+  } catch(e) {
+    if (card) card.style.opacity = '1';
+    showToast('Ошибка: ' + e.message);
+  }
+}
+
+// ── Services ──────────────────────────────────────────────
+async function loadServices() {
+  const cont = document.getElementById('services-list');
+  cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  try {
+    const res = await apiFetch('/api/info');
+    if (!res.services.length) {
+      cont.innerHTML = '<div style="padding:20px;color:var(--gray-5);text-align:center">Услуг пока нет</div>';
+      return;
+    }
+    cont.innerHTML = res.services.map(s => `
+      <div class="svc-row" data-id="${s.id}">
+        <div class="svc-order-btns">
+          <button class="svc-order-btn" onclick="moveSvc(${s.id},-1)">▲</button>
+          <button class="svc-order-btn" onclick="moveSvc(${s.id},1)">▼</button>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="svc-row-name">${escHtml(s.name)}</div>
+          <div class="svc-row-meta">${formatDuration(s.duration_min)}${s.description ? ' · ' + escHtml(s.description) : ''}</div>
+        </div>
+        <div class="svc-row-price">${formatSvcPrice(s)}</div>
+        <button class="btn-icon" onclick="deleteService(${s.id})" title="Удалить">×</button>
+      </div>`).join('');
+  } catch(e) { cont.innerHTML = `<div style="padding:20px;color:var(--gray-5)">Ошибка: ${e.message}</div>`; }
+}
+
+function moveSvc(id, dir) {
+  const cont = document.getElementById('services-list');
+  if (!cont) return;
+  const rows = [...cont.querySelectorAll('.svc-row')];
+  const idx = rows.findIndex(r => parseInt(r.dataset.id) === id);
+  const target = idx + dir;
+  if (target < 0 || target >= rows.length) return;
+  if (dir === -1) cont.insertBefore(rows[idx], rows[target]);
+  else cont.insertBefore(rows[target], rows[idx]);
+  saveSvcOrder();
+}
+
+async function saveSvcOrder() {
+  const order = [...document.querySelectorAll('#services-list .svc-row')].map(r => parseInt(r.dataset.id));
+  try {
+    await apiFetch('/api/admin/services/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ ...authBody(), order }),
+    });
+    showToast('✓ Порядок сохранён');
+  } catch(e) { showToast('Ошибка сохранения порядка'); }
+}
+
+let _priceType = 'fixed';
+function setPriceType(type) {
+  _priceType = type;
+  ['fixed','from','range'].forEach(t => {
+    document.getElementById(`pt-${t}`).classList.toggle('active', t === type);
+  });
+  const toWrap = document.getElementById('price-to-wrap');
+  const lbl = document.getElementById('price-label');
+  toWrap.style.display = type === 'range' ? '' : 'none';
+  lbl.textContent = type === 'from' ? 'От (₸)' : type === 'range' ? 'От (₸)' : 'Цена (₸)';
+}
+
+async function addService() {
+  const name  = document.getElementById('new-svc-name').value.trim();
+  const price = parseFloat(document.getElementById('new-svc-price').value);
+  const dur   = parseInt(document.getElementById('new-svc-dur').value);
+  const desc  = document.getElementById('new-svc-desc').value.trim();
+  const priceTo = _priceType === 'range' ? parseFloat(document.getElementById('new-svc-price-to').value) : null;
+  if (!name || isNaN(price) || isNaN(dur)) { showToast('Заполните все поля'); return; }
+  if (_priceType === 'range' && (isNaN(priceTo) || priceTo <= price)) { showToast('Укажите корректную верхнюю цену'); return; }
+  try {
+    await apiFetch('/api/admin/services', {
+      method: 'POST',
+      body: JSON.stringify({ ...authBody(), name, price, duration_min: dur, prepayment_amount: 0, price_type: _priceType, price_to: priceTo, description: desc }),
+    });
+    document.getElementById('new-svc-name').value = '';
+    document.getElementById('new-svc-price').value = '';
+    document.getElementById('new-svc-price-to').value = '';
+    document.getElementById('new-svc-dur').value = '';
+    document.getElementById('new-svc-desc').value = '';
+    setPriceType('fixed');
+    showToast('✓ Услуга добавлена'); loadServices();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+async function deleteService(id) {
+  if (!confirm('Удалить услугу?')) return;
+  try {
+    await apiFetch(`/api/admin/services/${id}?${authParams()}`, { method: 'DELETE' });
+    showToast('Услуга удалена'); loadServices();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+// ── Settings ──────────────────────────────────────────────
+function setAvatarPreview(url) {
+  const prev = document.getElementById('s-avatar-preview');
+  const delBtn = document.getElementById('s-avatar-delete-btn');
+  if (!prev) return;
+  if (url) {
+    prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+    if (delBtn) delBtn.style.display = '';
+  } else {
+    prev.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3C9.24 3 7 5.24 7 8s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 12c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z" fill="currentColor" opacity="0.4"/></svg>`;
+    if (delBtn) delBtn.style.display = 'none';
+  }
+}
+
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('token', adminToken);
+  form.append('file', file);
+  try {
+    showToast('Загрузка...');
+    const r = await fetch('/api/admin/avatar', { method: 'POST', body: form });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.detail || 'Ошибка'); }
+    const data = await r.json();
+    setAvatarPreview(data.url);
+    showToast('✓ Фото сохранено');
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+  input.value = '';
+}
+
+async function deleteAvatar() {
+  if (!confirm('Удалить фото профиля?')) return;
+  try {
+    await apiFetch(`/api/admin/avatar?${authParams()}`, { method: 'DELETE' });
+    setAvatarPreview('');
+    showToast('✓ Фото удалено');
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+async function loadSettings() {
+  try {
+    const s = await apiFetch(`/api/admin/settings/all?${authParams()}`);
+    setAvatarPreview(s.master_avatar_url || '');
+    document.getElementById('s-name').value         = s.master_name         || '';
+    document.getElementById('s-bio').value          = s.master_bio          || '';
+    document.getElementById('s-location').value     = s.master_location     || '';
+    document.getElementById('s-instagram').value    = s.instagram_url       || '';
+    const bw = s.booking_weeks_ahead || 2;
+    document.getElementById('s-booking-weeks').value = bw;
+    document.getElementById('s-booking-weeks-val').textContent = bw + ' нед';
+    document.getElementById('s-pay-btn-text').value = s.payment_button_text || '';
+    document.getElementById('s-pay-btn-url').value  = s.payment_button_url  || '';
+    document.getElementById('s-prepayment-pct').value = Math.round(s.prepayment_percent);
+    document.getElementById('prepayment-toggle').classList.toggle('on', s.prepayment_required);
+    document.getElementById('notifications-toggle').classList.toggle('on', s.admin_notifications !== false);
+    document.getElementById('sameday-toggle').classList.toggle('on', s.same_day_notifications !== false);
+    document.getElementById('reminders-toggle').classList.toggle('on', s.client_reminders !== false);
+    const mode = s.prepayment_mode || 'manual';
+    document.querySelectorAll('input[name="prepayment_mode"]').forEach(r => { r.checked = r.value === mode; });
+    updatePrepaymentSub();
+  } catch(e) { showToast('Ошибка загрузки настроек'); }
+}
+
+async function saveSettings() {
+  const btn = document.querySelector('#page-settings .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Сохранение...'; }
+  const fields = [
+    ['master_name',         's-name'],
+    ['master_bio',          's-bio'],
+    ['master_location',     's-location'],
+    ['instagram_url',          's-instagram'],
+    ['booking_weeks_ahead',    's-booking-weeks'],
+    ['payment_button_text',    's-pay-btn-text'],
+    ['payment_button_url',     's-pay-btn-url'],
+    ['prepayment_percent',     's-prepayment-pct'],
+  ];
+  try {
+    for (const [key, elId] of fields) {
+      const val = document.getElementById(elId).value.trim();
+      await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key, value: val }) });
+    }
+    const isOn = document.getElementById('prepayment-toggle').classList.contains('on');
+    await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key: 'prepayment_required', value: isOn ? '1' : '0' }) });
+    const notifOn = document.getElementById('notifications-toggle').classList.contains('on');
+    await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key: 'admin_notifications', value: notifOn ? '1' : '0' }) });
+    const sameDayOn = document.getElementById('sameday-toggle').classList.contains('on');
+    await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key: 'same_day_notifications', value: sameDayOn ? '1' : '0' }) });
+    const remindersOn = document.getElementById('reminders-toggle').classList.contains('on');
+    await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key: 'client_reminders', value: remindersOn ? '1' : '0' }) });
+    showToast('✓ Настройки сохранены');
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Сохранить настройки'; }
+}
+
+function togglePrepayment() {
+  document.getElementById('prepayment-toggle').classList.toggle('on');
+}
+async function savePrepaymentMode(value) {
+  try {
+    await apiFetch('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ...authBody(), key: 'prepayment_mode', value }) });
+  } catch(e) { showToast('Ошибка сохранения'); }
+}
+function toggleNotifications() {
+  document.getElementById('notifications-toggle').classList.toggle('on');
+}
+function toggleSameDay() {
+  document.getElementById('sameday-toggle').classList.toggle('on');
+}
+function toggleReminders() {
+  document.getElementById('reminders-toggle').classList.toggle('on');
+}
+function updatePrepaymentSub() {
+  const pct = document.getElementById('s-prepayment-pct').value || '30';
+  document.getElementById('prepayment-percent-sub').textContent = `${pct}% от стоимости`;
+}
+
+// ── Revenue modal ─────────────────────────────────────────
+async function openRevenueModal() {
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth() + 1;
+  const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                      'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  document.getElementById('revenue-modal-title').textContent = `${monthNames[month-1]} ${year}`;
+  document.getElementById('revenue-list').innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  document.getElementById('revenue-total-bar').style.display = 'none';
+  document.getElementById('revenue-modal').classList.add('show');
+
+  try {
+    const data = await apiFetch(`/api/admin/revenue?year=${year}&month=${month}&${authParams()}`);
+    renderRevenueList(data.items || []);
+  } catch(e) {
+    document.getElementById('revenue-list').innerHTML = `<div style="padding:20px;color:var(--gray-5)">Ошибка: ${e.message}</div>`;
+  }
+}
+
+function closeRevenueModal() {
+  document.getElementById('revenue-modal').classList.remove('show');
+}
+
+function renderRevenueList(items) {
+  const cont = document.getElementById('revenue-list');
+  if (!items.length) {
+    cont.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--gray-5)"><div style="font-size:40px;margin-bottom:12px;opacity:0.3">💰</div><div style="font-size:15px;font-weight:600;color:var(--white)">Нет данных</div><div style="font-size:13px;margin-top:6px">Завершённых записей за этот месяц нет</div></div>';
+    return;
+  }
+
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  let total = 0;
+
+  cont.innerHTML = items.map(a => {
+    total += a.total_price || 0;
+    const d = new Date(a.date + 'T00:00:00');
+    const dateStr = `${d.getDate()} ${months[d.getMonth()]}`;
+    const svcs = (a.services || []).map(s => s.name).join(', ') || '—';
+    const prepaid = a.prepayment_amount > 0
+      ? `<span style="font-size:11px;color:var(--gray-5)">предоплата ${formatPrice(a.prepayment_amount)}</span>`
+      : '';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--gray-3)">
+        <div style="background:var(--gray-2);border-radius:10px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:46px">
+          <div style="font-size:16px;font-weight:800;color:var(--white);line-height:1">${d.getDate()}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px">${months[d.getMonth()]}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(a.name || '—')}</div>
+          <div style="font-size:12px;color:var(--gray-5);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.time} · ${escHtml(svcs)}</div>
+          <div style="margin-top:3px">${prepaid}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:16px;font-weight:800;letter-spacing:-0.4px;color:#4ade80">${formatPrice(a.total_price)}</div>
+          ${a.phone ? `<div style="font-size:11px;color:var(--gray-5);margin-top:2px">${escHtml(a.phone)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const totalBar = document.getElementById('revenue-total-bar');
+  document.getElementById('revenue-total-val').textContent = formatPrice(total);
+  totalBar.style.display = 'block';
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function formatPrice(p) { return new Intl.NumberFormat('ru-RU').format(Math.round(p || 0)) + ' ₸'; }
+function formatSvcPrice(s) {
+  const fmt = p => new Intl.NumberFormat('ru-RU').format(Math.round(p || 0));
+  if (s.price_type === 'from')  return `от ${fmt(s.price)} ₸`;
+  if (s.price_type === 'range') return `${fmt(s.price)} – ${fmt(s.price_to)} ₸`;
+  return `${fmt(s.price)} ₸`;
+}
+function formatDuration(m) {
+  if (m < 60) return `${m} мин`;
+  const h = Math.floor(m/60), r = m%60;
+  return r ? `${h} ч ${r} мин` : `${h} ч`;
+}
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

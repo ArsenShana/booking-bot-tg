@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Zaman</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=5">
+</head>
+<body>
+
+<!-- ═══════════════════════ HOME ═══════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- Hero profile -->
+  <div class="profile-section">
+    <div class="profile-avatar" id="profile-avatar">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3C9.24 3 7 5.24 7 8s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 12c-5.33 0-8 2.67-8 4v1h16v-1c0-1.33-2.67-4-8-4z" fill="currentColor" opacity="0.6"/>
+      </svg>
+    </div>
+
+    <div class="profile-name" id="profile-name">Zaman</div>
+    <div class="profile-bio" id="profile-bio">Premium Barbershop</div>
+    <div class="profile-location">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+        <path d="M6 1C4.34 1 3 2.34 3 4c0 2.25 3 7 3 7s3-4.75 3-7c0-1.66-1.34-3-3-3zm0 4a1 1 0 110-2 1 1 0 010 2z" fill="currentColor"/>
+      </svg>
+      <span id="profile-location">г. Алматы</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('services', this)">Услуги</button>
+    <button class="tab-btn"        onclick="switchTab('appointments', this)">Мои записи</button>
+  </div>
+
+  <!-- Services -->
+  <div id="tab-services">
+    <div class="services-list" id="services-list">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+
+  <!-- My Appointments -->
+  <div id="tab-appointments" style="display:none">
+    <div id="tab-appt-content"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button id="book-btn" class="btn-primary" onclick="goToCalendar()" disabled>
+      Выберите услугу
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ CALENDAR ════════════════════════ -->
+<div id="page-calendar" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showPage('home')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+        <path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Назад
+    </div>
+    <h1>Выберите дату</h1>
+  </div>
+
+  <div class="mt-16"></div>
+
+  <div class="calendar-wrap">
+    <div class="cal-header">
+      <button class="cal-nav" id="cal-prev" onclick="calPrev()">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nav" id="cal-next" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-weekdays">
+      <div class="cal-weekday">Пн</div><div class="cal-weekday">Вт</div>
+      <div class="cal-weekday">Ср</div><div class="cal-weekday">Чт</div>
+      <div class="cal-weekday">Пт</div>
+      <div class="cal-weekday" style="color:var(--gray-4)">Сб</div>
+      <div class="cal-weekday" style="color:var(--gray-4)">Вс</div>
+    </div>
+    <div class="cal-days" id="cal-days"></div>
+    <div id="cal-loading" class="loading" style="display:none;padding:20px 0"><div class="spinner"></div></div>
+    <div id="cal-no-slots" class="cal-no-slots" style="display:none">
+      <div class="no-slots-icon">📅</div>
+      <div class="no-slots-title">Нет свободных дат</div>
+      <div class="no-slots-sub">В этом месяце всё занято.<br>Попробуйте следующий месяц.</div>
+    </div>
+  </div>
+
+  <!-- Slots -->
+  <div id="slots-section" style="display:none; margin-top:24px">
+    <div class="slots-date-header">
+      <div class="section-label" style="padding:0;flex:1">Свободное время</div>
+      <div class="slots-date-pill" id="slots-date-label">—</div>
+    </div>
+    <div id="slots-content"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button id="next-btn" class="btn-primary" onclick="showPage('notes')" disabled>
+      Выберите время
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ NOTES ═══════════════════════════ -->
+<div id="page-notes" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showPage('calendar')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+        <path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Назад
+    </div>
+    <h1>Пожелания</h1>
+    <p>Необязательно — можно пропустить</p>
+  </div>
+
+  <div class="mt-16"></div>
+  <div id="notes-booking-strip"></div>
+  <div class="mt-16"></div>
+
+  <div style="padding:0 16px">
+    <textarea id="booking-notes"
+      class="form-input"
+      style="min-height:130px;resize:none;line-height:1.6;border-radius:var(--r-md)"
+      placeholder="Например: короткие бока, длиннее сверху, текстура…&#10;Можно оставить пустым"
+      onfocus="this.style.borderColor='var(--gray-5)'"
+      onblur="this.style.borderColor='var(--gray-3)'"></textarea>
+  </div>
+
+  <div class="bottom-bar" style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn-primary" onclick="showPage('review')">Продолжить</button>
+    <button class="btn-secondary" style="margin:0" onclick="document.getElementById('booking-notes').value='';showPage('review')">Пропустить</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ REVIEW ══════════════════════════ -->
+<div id="page-review" class="page">
+  <div class="header">
+    <div class="header-back" onclick="showPage('notes')">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+        <path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Назад
+    </div>
+    <h1>Подтверждение</h1>
+    <p>Проверьте детали записи</p>
+  </div>
+  <div class="mt-16"></div>
+  <div id="review-content"></div>
+
+  <div class="contact-card">
+    <div class="contact-card-title">Ваши данные</div>
+    <div class="contact-field">
+      <label>Имя</label>
+      <input id="client-name" class="form-input" type="text" placeholder="Введите имя" autocomplete="name">
+    </div>
+    <div class="contact-field">
+      <label>Телефон</label>
+      <input id="client-phone" class="form-input" type="tel" placeholder="+7 (___) ___-__-__" autocomplete="tel" inputmode="tel">
+    </div>
+  </div>
+
+  <div class="mt-8"></div>
+
+  <div class="bottom-bar">
+    <button id="confirm-btn" class="btn-primary" onclick="confirmBooking()">
+      Записаться
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ PAYMENT ═════════════════════════ -->
+<div id="page-payment" class="page">
+  <div class="header">
+    <h1>Предоплата</h1>
+    <p>Переведите сумму по реквизитам</p>
+  </div>
+  <div id="payment-content"></div>
+  <div class="bottom-bar" id="payment-confirm-bar">
+    <button class="btn-primary" onclick="notifyPaid()">Я оплатил(а)</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ SUCCESS ═════════════════════════ -->
+<div id="page-success" class="page"></div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>window.API_URL = '';</script>
+<script src="/js/app.js?v=5"></script>
+<script>
+/* ── Tab switcher ──────────────────────────────────────────── */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const isSvc = tab === 'services';
+  document.getElementById('tab-services').style.display     = isSvc ? 'block' : 'none';
+  document.getElementById('tab-appointments').style.display = isSvc ? 'none'  : 'block';
+  document.getElementById('book-btn').style.display         = isSvc ? ''      : 'none';
+  if (!isSvc) loadTabAppointments();
+}
+
+/* ── My appointments tab ───────────────────────────────────── */
+let tabPhone = '';
+
+async function loadTabAppointments() {
+  const cont = document.getElementById('tab-appt-content');
+  if (TG_ID) {
+    cont.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+      const data = await apiFetch(`/api/appointments?tg_id=${TG_ID}`);
+      renderApptList(cont, data.appointments || []);
+    } catch(e) {
+      cont.innerHTML = '<div class="empty-state"><p style="color:var(--gray-5)">Ошибка загрузки</p></div>';
+    }
+    return;
+  }
+  if (!tabPhone) {
+    cont.innerHTML = `
+      <div style="padding:32px 20px;text-align:center">
+        <div style="font-size:40px;margin-bottom:16px;opacity:0.3">📋</div>
+        <p style="font-size:16px;font-weight:700;color:var(--white);margin-bottom:6px">Найти записи</p>
+        <p style="font-size:13px;color:var(--gray-6);margin-bottom:20px">Введите номер телефона указанный при записи</p>
+        <input id="appt-phone-input" class="form-input" type="tel" placeholder="+7 (___) ___-__-__" inputmode="tel" style="margin-bottom:12px;text-align:center">
+        <button class="btn-primary" style="width:100%" onclick="lookupByPhone()">Найти</button>
+      </div>`;
+    const el = document.getElementById('appt-phone-input');
+    if (el) applyPhoneMask(el);
+    return;
+  }
+  cont.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/appointments?phone=${encodeURIComponent(tabPhone)}`);
+    renderApptList(cont, data.appointments || []);
+  } catch(e) {
+    cont.innerHTML = '<div class="empty-state"><p style="color:var(--gray-5)">Ошибка загрузки</p></div>';
+  }
+}
+
+function renderApptList(cont, appointments) {
+  const upcoming = appointments.filter(a => a.status !== 'cancelled');
+  if (!upcoming.length) {
+    cont.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <h3>Записей пока нет</h3>
+      <p>Выберите услугу и запишитесь<br>к мастеру</p>
+    </div>`;
+    return;
+  }
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const statusMap = {
+    pending:   ['Ожидает', 'pending'],
+    new:       ['Ожидает', 'pending'],
+    confirmed: ['Подтверждена', 'confirmed'],
+    completed: ['Завершена', ''],
+    cancelled: ['Отменена', 'cancelled'],
+  };
+  cont.innerHTML = '<div class="appointments-list" style="padding-top:4px">' + upcoming.map(a => {
+    const d = new Date(a.date + 'T00:00:00');
+    const svcs = a.services.map(s => s.name).join(', ');
+    const [txt, cls] = statusMap[a.status] || ['', ''];
+    const canCancel = ['pending','new','confirmed'].includes(a.status);
+    const hasPrepay = a.prepayment_amount > 0 && !a.prepayment_paid;
+    return `<div class="appt-card">
+      <div class="appt-card-top">
+        <div class="appt-card-date-block">
+          <div class="appt-card-day">${d.getDate()}</div>
+          <div class="appt-card-mon">${months[d.getMonth()]}</div>
+        </div>
+        <div class="appt-card-info">
+          <div class="appt-time">${a.time}</div>
+          <div class="appt-services">${escHtml(svcs)}</div>
+        </div>
+        <div class="appt-card-right">
+          <div class="appt-price">${formatPrice(a.total_price)}</div>
+          <div class="appt-status ${cls}">${txt}</div>
+        </div>
+      </div>
+      ${(hasPrepay || canCancel) ? `
+      <div class="appt-card-footer">
+        ${hasPrepay ? `<div class="appt-prepayment">Предоплата: ${formatPrice(a.prepayment_amount)}</div>` : '<div></div>'}
+        ${canCancel ? `<button class="appt-cancel-btn" onclick="cancelTabAppt(${a.id})">Отменить</button>` : ''}
+      </div>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function lookupByPhone() {
+  const val = document.getElementById('appt-phone-input')?.value.trim();
+  if (!val) return;
+  tabPhone = val;
+  loadTabAppointments();
+}
+
+async function cancelTabAppt(id) {
+  if (!confirm('Отменить запись?')) return;
+  try {
+    const body = TG_ID ? { tg_id: TG_ID } : { phone: tabPhone };
+    await apiFetch(`/api/appointments/${id}/cancel`, { method:'POST', body:JSON.stringify(body) });
+    showToast('Запись отменена');
+    await loadTabAppointments();
+  } catch(e) { showToast('Ошибка: ' + e.message); }
+}
+
+function goToCalendar() {
+  if (!state.selectedServiceIds.length) return;
+  showPage('calendar');
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
