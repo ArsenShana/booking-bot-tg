@@ -1,0 +1,30 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Database files
+*.db
+*.sqlite3
+
+# Tunnel
+.tunnel_url
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
