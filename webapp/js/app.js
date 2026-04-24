@@ -205,12 +205,10 @@ function renderServices() {
 }
 
 function toggleService(id) {
-  const idx = state.selectedServiceIds.indexOf(id);
-  if (idx === -1) {
-    state.selectedServiceIds.push(id);
-    tg?.HapticFeedback?.selectionChanged();
+  if (state.selectedServiceIds[0] === id) {
+    state.selectedServiceIds = [];
   } else {
-    state.selectedServiceIds.splice(idx, 1);
+    state.selectedServiceIds = [id];
     tg?.HapticFeedback?.selectionChanged();
   }
   renderServices();

@@ -686,7 +686,10 @@ async def show_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Напишите администратору:",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("✉️ Написать администратору", url=f"tg://user?id={ADMIN_ID}")
+            InlineKeyboardButton(
+                "📸 Написать администратору",
+                url=settings.get('instagram_url', f"tg://user?id={ADMIN_ID}") or f"tg://user?id={ADMIN_ID}"
+            )
         ]])
     )
 

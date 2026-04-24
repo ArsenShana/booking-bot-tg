@@ -21,9 +21,10 @@ async def auto_cancel_loop():
     while True:
         try:
             now = datetime.now()
+            now_utc = datetime.utcnow()
             hour = now.hour
             if 10 <= hour < 22:
-                cutoff = (now - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
+                cutoff = (now_utc - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
                 cancelled = await db.auto_cancel_unconfirmed(cutoff)
                 for appt in cancelled:
                     from_dt = datetime.strptime(appt['date'], '%Y-%m-%d')
@@ -359,7 +360,6 @@ async def create_booking(req: BookingRequest):
             f"{prepay_line}"
             f"{notes_client}"
             f"{warning_line}\n\n"
-            f"{LOCATION_NOTE}\n\n"
             f"⏳ Ожидает подтверждения мастера."
         )
         msg_id = await tg_send(req.tg_id, client_text)
