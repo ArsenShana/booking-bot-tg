@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Zaman</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=5">
+  <link rel="stylesheet" href="/css/style.css?v=8">
 </head>
 <body>
 
@@ -67,9 +67,25 @@
       Назад
     </div>
     <h1>Выберите дату</h1>
+    <div class="cal-booking-notice">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+        <polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Внимание: запись открывается только на 4–5 дней вперёд
+    </div>
   </div>
 
   <div class="mt-16"></div>
+
+  <div style="padding:0 16px 12px">
+    <button id="nearest-btn" class="btn-nearest" onclick="pickNearestSlot()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Ближайшее время для записи
+    </button>
+  </div>
 
   <div class="calendar-wrap">
     <div class="cal-header">
@@ -196,7 +212,7 @@
 <div id="toast" class="toast"></div>
 
 <script>window.API_URL = '';</script>
-<script src="/js/app.js?v=5"></script>
+<script src="/js/app.js?v=7"></script>
 <script>
 /* ── Tab switcher ──────────────────────────────────────────── */
 function switchTab(tab, btn) {

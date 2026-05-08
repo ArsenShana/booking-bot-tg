@@ -311,6 +311,53 @@ body {
 }
 .btn-secondary:active { background: var(--gray-2); color: var(--white); }
 
+/* ─── Nearest slot button ─────────────────────────────────── */
+.btn-nearest {
+  width: 100%;
+  padding: 15px 18px;
+  background: linear-gradient(135deg, rgba(74,222,128,0.15) 0%, rgba(74,222,128,0.07) 100%);
+  color: var(--green);
+  border: 1.5px solid var(--green-border);
+  border-radius: var(--r-md);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: -0.1px;
+  box-shadow: 0 0 18px rgba(74,222,128,0.10);
+  position: relative;
+  overflow: hidden;
+}
+.btn-nearest::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(74,222,128,0.06);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.btn-nearest:active::before { opacity: 1; }
+.btn-nearest:active { transform: scale(0.98); }
+.btn-nearest.loading { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ─── Calendar booking notice ────────────────────────────── */
+.cal-booking-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--gray-6);
+  background: var(--gray-2);
+  border: 1px solid var(--gray-3);
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
 /* ─── Calendar ────────────────────────────────────────────── */
 .calendar-wrap {
   background: var(--gray-1);

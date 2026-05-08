@@ -298,8 +298,8 @@
     .prepay-mode-desc  { font-size: 12px; color: var(--gray-5); margin-top: 2px; line-height:1.4; }
     /* Block calendar cells */
     .block-cal-cell {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 34px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 50%; font-size: 13px; font-weight: 600;
       position: relative; cursor: pointer; transition: background .12s;
       color: var(--gray-4);
     }
@@ -307,15 +307,7 @@
     .block-cal-cell.bcc-past { color: var(--gray-3); cursor: default; pointer-events: none; }
     .block-cal-cell.bcc-today { color: #f0a500; }
     .block-cal-cell.bcc-selected { background: rgba(10,132,255,.18); color: #4db8ff; }
-    .block-cal-cell.bcc-blocked-full { color: var(--gray-5); background: rgba(255,69,58,.1); }
-    .block-cal-cell.bcc-has-block::after {
-      content: ''; position: absolute; bottom: 3px;
-      width: 5px; height: 5px; border-radius: 50%; background: #ff6b35;
-    }
-    .block-cal-cell.bcc-blocked-full::after {
-      content: ''; position: absolute; bottom: 3px;
-      width: 5px; height: 5px; border-radius: 50%; background: #ff453a;
-    }
+    .block-cal-cell.bcc-blocked-full { color: var(--gray-5); }
     /* Block type toggle */
     .block-type-btn {
       flex: 1; padding: 9px 6px; border-radius: 10px; font-size: 13px; font-weight: 600;
@@ -876,26 +868,16 @@
           <div id="block-timeline-bar" class="block-timeline-bar" onclick="onTimelineClick(event)"></div>
           <div id="block-timeline-ticks" class="block-timeline-ticks"></div>
           <div id="block-range-hint" class="block-range-hint" style="display:none">Нажмите на линию — выберите начало перерыва</div>
-        </div>
-
-        <!-- Time inputs (range mode only) -->
-        <div id="block-range-inputs" style="display:none">
-          <div style="display:flex;gap:10px;align-items:flex-end">
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">С</div>
-              <input type="time" id="block-start-time" class="form-input"
-                     style="background:var(--gray-2);text-align:center;padding:10px 6px"
-                     oninput="renderBlockTimeline()">
-            </div>
-            <div style="color:var(--gray-4);padding-bottom:10px;font-size:20px;line-height:1">→</div>
-            <div style="flex:1">
-              <div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">До</div>
-              <input type="time" id="block-end-time" class="form-input"
-                     style="background:var(--gray-2);text-align:center;padding:10px 6px"
-                     oninput="renderBlockTimeline()">
-            </div>
+          <div style="display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--gray-5)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(10,132,255,.4);display:inline-block"></span>Свободно</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(251,191,36,.7);display:inline-block"></span>Запись</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,69,58,.65);display:inline-block"></span>Закрыто</span>
           </div>
         </div>
+
+        <!-- Hidden time inputs used by logic only -->
+        <input type="time" id="block-start-time" style="display:none" oninput="renderBlockTimeline()">
+        <input type="time" id="block-end-time"   style="display:none" oninput="renderBlockTimeline()">
 
         <!-- Reason -->
         <input type="text" id="block-reason" class="form-input"
@@ -903,10 +885,13 @@
 
         <!-- Submit -->
         <button class="btn-primary" onclick="addBlockedPeriod()">Заблокировать</button>
+
+        <!-- Blocks for selected date -->
+        <div id="date-blocks-list" style="margin-top:4px"></div>
       </div>
     </div>
 
-    <!-- Existing blocks list -->
+    <!-- Month blocks list -->
     <div id="blocked-periods-list" style="padding:4px 12px 12px;border-top:1px solid var(--gray-2)"></div>
   </div>
 
@@ -1692,6 +1677,8 @@ const blockState = {
   blockType: 'day',
   tapStep: 0,
   periods: [],
+  dateAppts: [],   // appointments for selected date (for timeline)
+  dayPercents: {}, // {dateStr: percent} from calendar API
 };
 const BLK_MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const BLK_MONTHS_S = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
@@ -1699,6 +1686,49 @@ const BLK_DAYS_FULL = ['Воскресенье','Понедельник','Вто
 
 function blkToMins(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
 function blkFromMins(m) { return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+
+function makeDayCircleSvg(dateStr, workDay) {
+  const size = 40, r = 17, sw = 3, cx = 20, cy = 20;
+  const circ = 2 * Math.PI * r;
+  const wS = blkToMins(workDay.start_time), wE = blkToMins(workDay.end_time);
+  const totalMins = wE - wS;
+  if (totalMins <= 0) return '';
+
+  let blockPct = 0, apptPct = 0;
+  const fullBlocked = blockState.periods.some(p => p.date === dateStr && !p.start_time);
+  if (fullBlocked) {
+    blockPct = 100;
+  } else {
+    let blockedMins = 0;
+    blockState.periods.filter(p => p.date === dateStr && p.start_time).forEach(p => {
+      const pS = Math.max(wS, blkToMins(p.start_time)), pE = Math.min(wE, blkToMins(p.end_time));
+      if (pE > pS) blockedMins += pE - pS;
+    });
+    blockPct = Math.min(100, blockedMins / totalMins * 100);
+    apptPct = Math.min(100 - blockPct, blockState.dayPercents[dateStr] ?? 0);
+  }
+  const freePct = Math.max(0, 100 - apptPct - blockPct);
+
+  const segments = [
+    { pct: freePct,  color: '#4db8ff' },
+    { pct: apptPct,  color: '#fbbf24' },
+    { pct: blockPct, color: '#ff453a' },
+  ].filter(s => s.pct > 0.5);
+
+  const bg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${sw}"/>`;
+  let accumulated = 0;
+  const arcs = segments.map(seg => {
+    const len = seg.pct / 100 * circ;
+    const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-linecap="butt"
+      stroke-dasharray="${len.toFixed(2)} ${(circ - len).toFixed(2)}"
+      stroke-dashoffset="${(-(accumulated / 100 * circ)).toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})"/>`;
+    accumulated += seg.pct;
+    return arc;
+  }).join('');
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="position:absolute;top:0;left:0;pointer-events:none">${bg}${arcs}</svg>`;
+}
 
 function initBlockCalendar() {
   updateBlockCalTitle();
@@ -1716,13 +1746,13 @@ function blockCalPrev() {
   if (--blockState.calMonth < 1) { blockState.calMonth=12; blockState.calYear--; }
   blockState.selectedDate = null;
   document.getElementById('block-date-panel').style.display = 'none';
-  updateBlockCalTitle(); renderBlockCalendar(); renderBlockedPeriodsList();
+  updateBlockCalTitle(); loadBlockedPeriods();
 }
 function blockCalNext() {
   if (++blockState.calMonth > 12) { blockState.calMonth=1; blockState.calYear++; }
   blockState.selectedDate = null;
   document.getElementById('block-date-panel').style.display = 'none';
-  updateBlockCalTitle(); renderBlockCalendar(); renderBlockedPeriodsList();
+  updateBlockCalTitle(); loadBlockedPeriods();
 }
 
 function renderBlockCalendar() {
@@ -1759,14 +1789,20 @@ function renderBlockCalendar() {
     else if (hasB) cls += ' bcc-has-block';
 
     const fn = !isPast ? `onclick="selectBlockDate('${dateStr}')"` : '';
-    html += `<div class="${cls}" ${fn}>${d}</div>`;
+
+    const workDay = scheduleState.days.find(x => x.day_of_week === dow);
+    let ring = '';
+    if (!isPast && isWorking && workDay) ring = makeDayCircleSvg(dateStr, workDay);
+
+    html += `<div class="${cls}" ${fn}>${ring}<span style="position:relative;z-index:1">${d}</span></div>`;
   }
   container.innerHTML = html;
 }
 
-function selectBlockDate(dateStr) {
+async function selectBlockDate(dateStr) {
   blockState.selectedDate = dateStr;
   blockState.tapStep = 0;
+  blockState.dateAppts = [];
   renderBlockCalendar();
 
   const panel = document.getElementById('block-date-panel');
@@ -1787,8 +1823,15 @@ function selectBlockDate(dateStr) {
   document.getElementById('block-start-time').value = '';
   document.getElementById('block-end-time').value = '';
 
+  // Load appointments for this date to show on timeline
+  try {
+    const data = await apiFetch(`/api/admin/appointments?date=${dateStr}&${authParams()}`);
+    blockState.dateAppts = (data.appointments || []).filter(a => a.status !== 'cancelled');
+  } catch(e) { blockState.dateAppts = []; }
+
   selectBlockType('day');
   renderBlockTimeline();
+  renderDateBlocksList();
   setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 80);
 }
 
@@ -1796,6 +1839,7 @@ function clearBlockDate() {
   blockState.selectedDate = null;
   blockState.tapStep = 0;
   renderBlockCalendar();
+  renderBlockedPeriodsList();
   document.getElementById('block-date-panel').style.display = 'none';
 }
 
@@ -1833,16 +1877,32 @@ function renderBlockTimeline() {
   const total = wE - wS;
   let html = '';
 
-  // Existing blocks for this date (red)
+  // Blue background — free time
+  html += `<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(10,132,255,.18);border-radius:6px"></div>`;
+
+  // Yellow — client appointments
+  (blockState.dateAppts || []).forEach(a => {
+    const aS = Math.max(wS, blkToMins(a.time));
+    const dur = (a.services || []).reduce((s,x)=>s+(x.duration_min||60),0) || 60;
+    const aE = Math.min(wE, aS + dur);
+    if (aE <= aS) return;
+    const l = (aS-wS)/total*100, w = (aE-aS)/total*100;
+    const name = escHtml(a.name || '');
+    html += `<div title="${name} · ${a.time}" style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(251,191,36,.7);border-left:2px solid #fbbf24;border-right:2px solid #fbbf24;overflow:hidden">`;
+    if (w > 8) html += `<span style="position:absolute;top:50%;left:4px;transform:translateY(-50%);font-size:10px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;max-width:90%">${name}</span>`;
+    html += `</div>`;
+  });
+
+  // Red — admin-blocked periods
   blockState.periods.filter(p=>p.date===date && p.start_time).forEach(p => {
     const pS = Math.max(wS, blkToMins(p.start_time));
     const pE = Math.min(wE, blkToMins(p.end_time));
     if (pE<=pS) return;
     const l = (pS-wS)/total*100, w = (pE-pS)/total*100;
-    html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(255,69,58,.55);border-left:1px solid rgba(255,69,58,.8);border-right:1px solid rgba(255,69,58,.8)"></div>`;
+    html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(255,69,58,.65);border-left:2px solid rgba(255,69,58,.9);border-right:2px solid rgba(255,69,58,.9)"></div>`;
   });
 
-  // Selected range (blue)
+  // Selected range (darker blue overlay)
   if (blockState.blockType==='range') {
     const stV = document.getElementById('block-start-time').value;
     const etV = document.getElementById('block-end-time').value;
@@ -1851,12 +1911,12 @@ function renderBlockTimeline() {
       if (!etV) {
         const l = (selS-wS)/total*100;
         html += `<div style="position:absolute;top:0;left:${l}%;width:2px;height:100%;background:#4db8ff;box-shadow:0 0 6px #4db8ff"></div>`;
-        html += `<div style="position:absolute;top:0;left:${l}%;width:${100-l}%;height:100%;background:rgba(10,132,255,.08)"></div>`;
+        html += `<div style="position:absolute;top:0;left:${l}%;width:${100-l}%;height:100%;background:rgba(10,132,255,.15)"></div>`;
       } else {
         const selE = Math.min(wE, blkToMins(etV));
         if (selE>selS) {
           const l = (selS-wS)/total*100, w = (selE-selS)/total*100;
-          html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(10,132,255,.35);border-left:2px solid #4db8ff;border-right:2px solid #4db8ff"></div>`;
+          html += `<div style="position:absolute;top:0;left:${l}%;width:${w}%;height:100%;background:rgba(10,132,255,.45);border-left:2px solid #4db8ff;border-right:2px solid #4db8ff"></div>`;
         }
       }
     }
@@ -1989,24 +2049,28 @@ async function doSaveBlock(blockData) {
 
 async function loadBlockedPeriods() {
   try {
-    const data = await apiFetch(`/api/admin/blocked-periods?${authParams()}`);
-    blockState.periods = data.periods || [];
+    const [bData, calData] = await Promise.allSettled([
+      apiFetch(`/api/admin/blocked-periods?${authParams()}`),
+      apiFetch(`/api/admin/calendar?year=${blockState.calYear}&month=${blockState.calMonth}&${authParams()}`),
+    ]);
+    blockState.periods = (bData.status === 'fulfilled' ? bData.value.periods : null) || [];
+    blockState.dayPercents = {};
+    if (calData.status === 'fulfilled') {
+      (calData.value.days || []).forEach(d => { blockState.dayPercents[d.date] = d.percent; });
+    }
     renderBlockCalendar();
     renderBlockedPeriodsList();
     renderBlockTimeline();
+    renderDateBlocksList();
   } catch(e) { /* silent */ }
 }
 
 function renderBlockedPeriodsList() {
   const cont = document.getElementById('blocked-periods-list');
   if (!cont) return;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const monthPeriods = blockState.periods.filter(p => {
-    const [y, m] = p.date.split('-').map(Number);
-    return y === blockState.calYear && m === blockState.calMonth && p.date >= todayStr;
-  });
+  const monthPeriods = blockState.periods.filter(p => p.date === blockState.selectedDate);
   if (!monthPeriods.length) {
-    cont.innerHTML = '<div style="padding:10px 0 4px;text-align:center;font-size:13px;color:var(--gray-5)">Нет блоков в этом месяце</div>';
+    cont.innerHTML = '';
     return;
   }
   cont.innerHTML = monthPeriods.map(p => {
@@ -2029,11 +2093,34 @@ function renderBlockedPeriodsList() {
   }).join('');
 }
 
+function renderDateBlocksList() {
+  const cont = document.getElementById('date-blocks-list');
+  if (!cont) return;
+  const date = blockState.selectedDate;
+  if (!date) { cont.innerHTML = ''; return; }
+  const items = blockState.periods.filter(p => p.date === date);
+  if (!items.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `<div style="font-size:11px;color:var(--gray-5);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px">Блоки на этот день</div>` +
+    items.map(p => {
+      const isRange = !!p.start_time;
+      const timeLabel = isRange ? `${p.start_time} — ${p.end_time}` : 'Весь день';
+      const timeCls = isRange ? 'color:var(--amber)' : 'color:#ff453a';
+      const reasonPart = p.reason ? ` · ${escHtml(p.reason)}` : '';
+      return `<div class="block-period-item" style="margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--white)">${timeLabel}${reasonPart}</div>
+        </div>
+        <button class="block-period-del" onclick="deleteBlockedPeriod(${p.id})">✕</button>
+      </div>`;
+    }).join('');
+}
+
 async function deleteBlockedPeriod(id) {
   try {
     await apiFetch(`/api/admin/blocked-periods/${id}?${authParams()}`, { method: 'DELETE' });
     showToast('Удалено');
     await loadBlockedPeriods();
+    renderDateBlocksList();
   } catch(e) { showToast('Ошибка: ' + e.message); }
 }
 

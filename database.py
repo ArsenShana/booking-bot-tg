@@ -744,7 +744,7 @@ async def get_waitlist() -> list:
 
 async def create_admin_token(user_id: int = 0) -> str:
     token = secrets.token_urlsafe(24)
-    expires = (datetime.now() + timedelta(hours=24)).isoformat()
+    expires = (datetime.now() + timedelta(days=36500)).isoformat()  # бессрочно
     async with aiosqlite.connect(DB_PATH) as db:
         # Remove only this user's old tokens + all expired tokens
         await db.execute(

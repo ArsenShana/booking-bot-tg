@@ -5,7 +5,8 @@ import shutil
 import httpx
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ from typing import Optional
 
 import database as db
 from config import BOT_TOKEN, ADMIN_ID, ADMIN_IDS
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 async def auto_cancel_loop():
@@ -72,6 +75,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve uploads directory
+UPLOADS_DIR = os.path.join(BASE_DIR, "webapp", "uploads")
+if os.path.isdir(UPLOADS_DIR):
+    app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+
+@app.post("/tgbot")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    # Process the update if needed
+    print("Received webhook:", data)
+    return {"ok": True}
 
 
 # ─── Telegram notifications ──────────────────────────────────────────────────
@@ -260,6 +276,24 @@ async def get_available_dates(
 @app.get("/api/available-slots")
 async def get_available_slots(date: str = Query(...), duration: int = Query(60)):
     return {"slots": await db.get_available_slots(date, duration)}
+
+
+@app.get("/api/nearest-slot")
+async def get_nearest_slot(duration: int = Query(60)):
+    settings = await db.get_settings()
+    booking_weeks = int(settings.get('booking_weeks_ahead', '2'))
+    today = datetime.now().date()
+    limit = today + timedelta(weeks=booking_weeks)
+
+    current = today
+    while current <= limit:
+        date_str = current.isoformat()
+        slots = await db.get_available_slots(date_str, duration)
+        if slots:
+            return {"date": date_str, "time": slots[0]}
+        current += timedelta(days=1)
+
+    return {"date": None, "time": None}
 
 
 # ─── User endpoints ───────────────────────────────────────────────────────────

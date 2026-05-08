@@ -78,10 +78,30 @@ async function loadAvailableDates() {
   const maxDuration = getTotalDuration();
   document.getElementById('cal-loading').style.display = 'flex';
   try {
-    const data = await apiFetch(
-      `/api/available-dates?year=${state.calYear}&month=${state.calMonth}&duration=${maxDuration}`
-    );
-    state.availableDates = data.dates;
+    const today = new Date();
+    const maxWeeks = state.masterInfo.booking_weeks_ahead || 2;
+    const limitDate = new Date(today);
+    limitDate.setDate(today.getDate() + maxWeeks * 7);
+
+    while (true) {
+      const data = await apiFetch(
+        `/api/available-dates?year=${state.calYear}&month=${state.calMonth}&duration=${maxDuration}`
+      );
+      state.availableDates = data.dates;
+
+      if (state.availableDates.length > 0) break;
+
+      // No dates this month — try next if within limit
+      const nextMonth = state.calMonth === 12 ? 1 : state.calMonth + 1;
+      const nextYear  = state.calMonth === 12 ? state.calYear + 1 : state.calYear;
+      const nextStart = new Date(nextYear, nextMonth - 1, 1);
+      if (nextStart > limitDate) break;
+
+      state.calMonth = nextMonth;
+      state.calYear  = nextYear;
+      updateCalendarHeader();
+    }
+
     renderCalendar();
   } catch (e) {
     state.availableDates = [];
@@ -239,6 +259,44 @@ function updateBookButton() {
 // ─── Calendar ─────────────────────────────────────────────────────────────────
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+async function pickNearestSlot() {
+  const btn = document.getElementById('nearest-btn');
+  if (btn) { btn.classList.add('loading'); btn.textContent = 'Поиск...'; }
+
+  try {
+    const duration = getTotalDuration();
+    const data = await apiFetch(`/api/nearest-slot?duration=${duration}`);
+
+    if (!data.date || !data.time) {
+      showToast('Нет свободных мест');
+      return;
+    }
+
+    const [year, month] = data.date.split('-').map(Number);
+
+    // Switch calendar to the right month if needed
+    if (state.calYear !== year || state.calMonth !== month) {
+      state.calYear = year;
+      state.calMonth = month;
+      updateCalendarHeader();
+      await loadAvailableDates();
+    }
+
+    // Select the date and time
+    await selectDate(data.date);
+    selectSlot(data.time);
+
+    tg?.HapticFeedback?.notificationOccurred('success');
+  } catch (e) {
+    showToast('Ошибка: ' + e.message);
+  } finally {
+    if (btn) {
+      btn.classList.remove('loading');
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Ближайшая запись`;
+    }
+  }
+}
 const WEEKDAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 function updateCalendarHeader() {
