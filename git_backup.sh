@@ -9,4 +9,4 @@ fi
 
 git add -A
 git commit -m "Авто-бэкап: $(date '+%d.%m.%Y %H:%M')"
-git push origin main
+git push origin master
