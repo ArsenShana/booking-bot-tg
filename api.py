@@ -17,6 +17,14 @@ from config import BOT_TOKEN, ADMIN_ID, ADMIN_IDS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Per-date locks to prevent double-booking the same slot concurrently
+_booking_locks: dict[str, asyncio.Lock] = {}
+
+def _get_booking_lock(date: str) -> asyncio.Lock:
+    if date not in _booking_locks:
+        _booking_locks[date] = asyncio.Lock()
+    return _booking_locks[date]
+
 
 async def auto_cancel_loop():
     """Every 5 min: cancel unconfirmed appointments older than 2h (only 10:00–22:00)."""
@@ -339,17 +347,18 @@ async def create_booking(req: BookingRequest):
     prepayment_percent = float(settings.get('prepayment_percent', '30'))
     prepayment_amount = round(total_price * prepayment_percent / 100) if prepayment_required else 0
 
-    slots = await db.get_available_slots(req.date, sum(s['duration_min'] for s in selected))
-    if req.time not in slots:
-        raise HTTPException(409, "Время уже занято")
+    async with _get_booking_lock(req.date):
+        slots = await db.get_available_slots(req.date, sum(s['duration_min'] for s in selected))
+        if req.time not in slots:
+            raise HTTPException(409, "Время уже занято")
 
-    appt_id = await db.create_appointment(
-        date_str=req.date, time_str=req.time,
-        service_ids=req.service_ids, total_price=total_price,
-        prepayment_amount=prepayment_amount,
-        name=name, phone=phone, client_id=req.tg_id,
-        notes=req.notes or '',
-    )
+        appt_id = await db.create_appointment(
+            date_str=req.date, time_str=req.time,
+            service_ids=req.service_ids, total_price=total_price,
+            prepayment_amount=prepayment_amount,
+            name=name, phone=phone, client_id=req.tg_id,
+            notes=req.notes or '',
+        )
 
     # Notifications
     from datetime import datetime as dt, date as date_cls
@@ -393,7 +402,8 @@ async def create_booking(req: BookingRequest):
             f"💰 {total_price:,.0f} ₸"
             f"{prepay_line}"
             f"{notes_client}"
-            f"{warning_line}\n\n"
+            f"{warning_line}"
+            f"\n⏰ _Опоздание более чем на 10–15 минут приравнивается к отмене записи._\n\n"
             f"⏳ Ожидает подтверждения мастера."
         )
         msg_id = await tg_send(req.tg_id, client_text)

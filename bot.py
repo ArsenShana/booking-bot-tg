@@ -576,7 +576,7 @@ async def process_booking_from_webapp(update: Update, context: ContextTypes.DEFA
             text += f"💳 `{card}`\n"
         if phone:
             text += f"📱 `{phone}`\n"
-        text += f"\nПосле оплаты нажмите кнопку ниже."
+        text += f"\n⏰ _Опоздание более чем на 10–15 минут приравнивается к отмене записи._\n\nПосле оплаты нажмите кнопку ниже."
 
         await update.message.reply_text(
             text, parse_mode=ParseMode.MARKDOWN,
