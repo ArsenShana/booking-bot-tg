@@ -1085,6 +1085,16 @@
     <button id="cf-visited" class="client-filter-btn active" onclick="setClientFilter('visited')">С записями</button>
     <button id="cf-all"     class="client-filter-btn"        onclick="setClientFilter('all')">Все в боте</button>
   </div>
+  <div style="padding:8px 16px 4px;position:relative">
+    <input id="client-search" class="form-input" type="search" placeholder="Поиск по имени, @username, телефону..."
+           oninput="setClientSearch(this.value)"
+           style="background:var(--gray-1);padding-left:38px">
+    <svg style="position:absolute;left:28px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:0.4"
+         width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
   <div id="clients-list"><div class="loading" style="padding:32px"><div class="spinner"></div></div></div>
 </div>
 
@@ -2127,6 +2137,7 @@ async function deleteBlockedPeriod(id) {
 // ── Clients ───────────────────────────────────────────────
 let _allClients = [];
 let _clientFilter = 'visited';
+let _clientSearch = '';
 
 function setClientFilter(f) {
   _clientFilter = f;
@@ -2135,15 +2146,31 @@ function setClientFilter(f) {
   renderClients();
 }
 
+function setClientSearch(val) {
+  _clientSearch = val.trim().toLowerCase();
+  renderClients();
+}
+
 function renderClients() {
   const cont = document.getElementById('clients-list');
   if (!cont) return;
-  const list = _clientFilter === 'visited'
+  let list = _clientFilter === 'visited'
     ? _allClients.filter(c => Number(c.visit_count) > 0)
     : _allClients;
 
+  if (_clientSearch) {
+    const q = _clientSearch;
+    list = list.filter(c => {
+      const name = [c.first_name, c.last_name].filter(Boolean).join(' ').toLowerCase();
+      const uname = (c.username || '').toLowerCase();
+      const phone = (c.phone || '').toLowerCase();
+      return name.includes(q) || uname.includes(q) || phone.includes(q);
+    });
+  }
+
   if (!list.length) {
-    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><h3>Клиентов нет</h3></div>';
+    const msg = _clientSearch ? 'Ничего не найдено' : 'Клиентов нет';
+    cont.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><h3>${msg}</h3></div>`;
     return;
   }
   const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
@@ -2197,6 +2224,9 @@ function renderClients() {
 async function loadClients() {
   const cont = document.getElementById('clients-list');
   cont.innerHTML = '<div class="loading" style="padding:32px"><div class="spinner"></div></div>';
+  _clientSearch = '';
+  const searchEl = document.getElementById('client-search');
+  if (searchEl) searchEl.value = '';
   try {
     const data = await apiFetch(`/api/admin/clients?${authParams()}`);
     _allClients = data.clients || [];
